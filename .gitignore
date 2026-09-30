@@ -1,0 +1,24 @@
+# ---- Unity ----
+unity/[Ll]ibrary/
+unity/[Tt]emp/
+unity/[Oo]bj/
+unity/[Bb]uild/
+unity/[Bb]uilds/
+unity/[Ll]ogs/
+unity/[Uu]serSettings/
+unity/[Mm]emoryCaptures/
+unity/*.csproj
+unity/*.sln
+unity/*.unityproj
+
+# ---- .NET (testes e harness) ----
+[Bb]in/
+[Oo]bj/
+
+# ---- Node (ferramenta de rasterização da arte) ----
+node_modules/
+
+# ---- sistema ----
+Thumbs.db
+desktop.ini
+.DS_Store

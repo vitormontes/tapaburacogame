@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="mascote" viewBox="0 0 220 380" aria-label="Vendedor de mate na praia">
+        <!-- sombra -->
+        <ellipse cx="112" cy="368" rx="64" ry="11" fill="#8E7038" opacity=".35"/>
+        <!-- pernas -->
+        <rect x="88" y="268" width="24" height="86" rx="11" fill="#E8B98D"/>
+        <rect x="120" y="268" width="24" height="86" rx="11" fill="#D8A87C"/>
+        <ellipse cx="96" cy="358" rx="22" ry="10" fill="#C94A32"/>
+        <ellipse cx="134" cy="358" rx="22" ry="10" fill="#C94A32"/>
+        <!-- short -->
+        <path d="M80 236 H152 L148 282 H120 L116 258 L112 282 H84 Z" fill="#2BA6A4"/>
+        <path d="M80 236 H152 V248 H80 Z" fill="#1C7E80"/>
+        <!-- camisa -->
+        <path d="M76 160 q36 -18 72 0 l10 84 q-46 12 -92 0 Z" fill="#F4EBD9"/>
+        <path d="M76 160 q36 -18 72 0 l3 24 q-38 -14 -78 0 Z" fill="#E4D8BE"/>
+        <path d="M104 152 l8 22 l8 -22 z" fill="#E8765C"/>
+        <!-- braço direito segurando o barril -->
+        <path d="M148 172 q26 -6 30 -34" stroke="#E8B98D" stroke-width="20" fill="none" stroke-linecap="round"/>
+        <!-- barril de mate -->
+        <g transform="translate(150,52)">
+          <rect x="0" y="6" width="62" height="96" rx="12" fill="#C9CDD2" stroke="#8C9298" stroke-width="3"/>
+          <ellipse cx="31" cy="10" rx="31" ry="9" fill="#E3E6E9" stroke="#8C9298" stroke-width="3"/>
+          <rect x="0" y="40" width="62" height="16" fill="#E8765C"/>
+          <rect x="0" y="62" width="62" height="7" fill="#2BA6A4"/>
+          <path d="M10 22 q8 -8 16 0" stroke="#fff" stroke-width="4" fill="none" opacity=".8" stroke-linecap="round"/>
+        </g>
+        <!-- braço esquerdo com baldinho -->
+        <path d="M78 176 q-22 20 -18 52" stroke="#E8B98D" stroke-width="20" fill="none" stroke-linecap="round"/>
+        <g transform="translate(34,222)">
+          <path d="M2 6 H46 L40 44 H8 Z" fill="#E8765C" stroke="#C94A32" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M2 6 q22 -16 44 0" stroke="#C94A32" stroke-width="3.5" fill="none"/>
+          <g transform="translate(30,-24) rotate(16)">
+            <rect x="4" y="0" width="6" height="26" rx="3" fill="#7A4C26"/>
+            <path d="M-3 24 H17 L14 40 Q7 46 0 40 Z" fill="#F4EBD9" stroke="#7A4C26" stroke-width="2.5" stroke-linejoin="round"/>
+          </g>
+        </g>
+        <!-- cabeça -->
+        <circle cx="112" cy="122" r="36" fill="#E8B98D"/>
+        <path d="M76 124 q36 26 72 0 q-6 34 -36 34 t-36 -34" fill="#DCA87C" opacity=".35"/>
+        <circle cx="99" cy="118" r="4.2" fill="#1A1A1A"/>
+        <circle cx="125" cy="118" r="4.2" fill="#1A1A1A"/>
+        <path d="M98 134 q14 13 28 0" stroke="#1A1A1A" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+        <ellipse cx="88" cy="130" rx="7" ry="4.5" fill="#E8765C" opacity=".4"/>
+        <ellipse cx="136" cy="130" rx="7" ry="4.5" fill="#E8765C" opacity=".4"/>
+        <!-- chapéu de palha -->
+        <ellipse cx="112" cy="96" rx="60" ry="15" fill="#E0C07A"/>
+        <ellipse cx="112" cy="94" rx="60" ry="14" fill="#EBD097"/>
+        <path d="M84 94 q4 -34 28 -34 t28 34 z" fill="#E0C07A"/>
+        <path d="M84 92 h56 v7 h-56 z" fill="#E8765C"/>
+      </svg>
