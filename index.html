@@ -6,6 +6,14 @@
 <meta name="theme-color" content="#2BA6A4">
 <title>TAPA BURACO — jogo de praia carioca</title>
 <style>
+/* Anton (SIL OFL), subset latino embutido em WOFF2 (5 KB).
+   Sem ela cada sistema caía numa condensada diferente — Haettenschweiler no Windows,
+   Impact no macOS, nada no Android — e o texto de cartaz ficava ilegível em corpo pequeno. */
+@font-face{
+  font-family:"Anton";
+  src:url(data:font/woff2;base64,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) format("woff2");
+  font-weight:400;font-style:normal;font-display:swap;
+}
 /* ============================================================
    TAPA BURACO — paleta e base
    ============================================================ */
@@ -31,7 +39,7 @@
   --gap:calc(var(--u) * .30);
   --estaca:calc(var(--u) * 1.15);
   --sombra:0 2px 0 rgba(26,26,26,.25);
-  --font-sign:"Haettenschweiler","Arial Narrow Bold","Impact","Anton","Arial Black",sans-serif;
+  --font-sign:"Anton","Haettenschweiler","Arial Narrow Bold","Impact","Arial Black",sans-serif;
   --font-body:"Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;
 
   /* textura de grão de impressão envelhecida */
@@ -113,7 +121,7 @@ body.skin-papel .moldura.v::before{display:none}
   filter:drop-shadow(0 3px 0 rgba(26,26,26,.32));
 }
 .logo .l1{
-  display:block;font-size:clamp(34px,11vw,90px);
+  display:block;font-size:clamp(28px,8.6vw,72px);
   color:var(--creme);
   -webkit-text-stroke:calc(2px + .4vw) var(--tinta);
   paint-order:stroke fill;
@@ -121,19 +129,24 @@ body.skin-papel .moldura.v::before{display:none}
   transform:rotate(-2deg);
 }
 .logo .l2{
-  display:block;font-size:clamp(46px,15.5vw,124px);
+  display:block;font-size:clamp(38px,12vw,98px);
   color:var(--coral);
   -webkit-text-stroke:calc(2px + .5vw) var(--tinta);
   paint-order:stroke fill;
   transform:rotate(1deg)
 }
-.logo .l2 .oh{position:relative;display:inline-block;width:1.02em;vertical-align:baseline}
-.logo .l2 .oh svg{position:absolute;left:0;top:-.90em;width:100%;height:1.24em}
+/* O "O" final é o buraco desenhado: com a Anton embutida a caixa da letra mudou,
+   então o slot foi reajustado para o buraco sentar no lugar do glifo, não sobrar
+   solto ao lado (o logo lia "BURAC" + um buraco qualquer). */
+.logo .l2 .oh{position:relative;display:inline-block;width:.78em;vertical-align:baseline}
+.logo .l2 .oh svg{position:absolute;left:-.07em;top:-1.17em;width:.92em;height:1.16em}
 .logo .sub{
-  display:block;margin-top:.5em;
+  display:block;margin-top:.55em;
   font-family:var(--font-body);font-style:italic;
-  font-size:clamp(11px,3.1vw,17px);letter-spacing:.22em;
-  color:var(--tinta);-webkit-text-stroke:0;text-transform:uppercase;opacity:.75;
+  font-size:clamp(9px,2.4vw,14px);letter-spacing:.08em;
+  color:var(--tinta);-webkit-text-stroke:0;text-transform:uppercase;opacity:.8;
+  /* o subtítulo cai sobre o céu e sobre o morro: um fio creme atrás garante a leitura */
+  text-shadow:0 1px 0 rgba(244,235,217,.85), 0 -1px 0 rgba(244,235,217,.85);
   transform:none;filter:none;
 }
 
@@ -166,9 +179,10 @@ body.skin-papel .moldura.v::before{display:none}
   box-shadow:0 5px 0 var(--tinta);
   transition:transform .08s, box-shadow .08s, filter .15s;
   display:inline-flex;align-items:center;justify-content:center;gap:.5em;
-  /* D4: creme sobre coral dava 2,47 — o contorno de tinta (mesmo truque do
-     logotipo) devolve a legibilidade sem mexer na cor de fundo. */
-  -webkit-text-stroke:2px var(--tinta);
+  /* D4: creme sobre coral dava 2,47 — o contorno de tinta (mesmo truque do logotipo)
+     devolve a legibilidade. Em `em`, não em px: 2px fixos entupiam as contraformas
+     de um texto de 15–23px e o botão virava borrão. */
+  -webkit-text-stroke:.055em var(--tinta);
   paint-order:stroke fill;
 }
 .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--tinta)}
@@ -189,7 +203,14 @@ body.skin-papel .moldura.v::before{display:none}
   padding:.8em 1em;font-size:clamp(12px,3.4vw,16px);line-height:1.35;
   border-radius:14px;position:relative;
 }
-.balao b{font-family:var(--font-sign);letter-spacing:.04em;font-size:1.15em}
+/* O negrito do balão continua na fonte de texto: trocar de família no meio da frase
+   (e ainda por uma condensada de cartaz) era o que embolava a leitura. A voz do
+   vendedor ganha uma linha própria, aí sim em Anton e em corpo maior. */
+.balao b{font-weight:700;color:var(--coral-esc)}
+.balao .fala{
+  display:block;font-family:var(--font-sign);font-size:1.55em;line-height:1.05;
+  letter-spacing:.03em;color:var(--coral-esc);margin-bottom:.25em;
+}
 .balao::before{
   content:"";position:absolute;left:-15px;bottom:26px;
   border:9px solid transparent;border-right-color:var(--tinta);
@@ -217,9 +238,9 @@ body.skin-papel .moldura.v::before{display:none}
   transition:.12s;
 }
 .opt small{display:block;font-weight:400;font-size:.82em;opacity:.7;font-style:italic;margin-top:2px}
-/* D4: creme sobre coral também aqui — contorno mais fino porque a fonte é serifada e menor */
+/* D4: creme sobre coral também aqui — contorno proporcional, que a fonte é menor */
 .opt[aria-pressed="true"]{background:var(--coral);color:var(--creme);box-shadow:inset 0 0 0 2px rgba(255,255,255,.45);
-  -webkit-text-stroke:1.5px var(--tinta);paint-order:stroke fill}
+  -webkit-text-stroke:.04em var(--tinta);paint-order:stroke fill}
 .opt[aria-pressed="true"] small{opacity:.9}
 .opt:disabled{opacity:.35;cursor:not-allowed}
 
@@ -227,9 +248,9 @@ body.skin-papel .moldura.v::before{display:none}
 #tela-jogo{padding:4px 6px 6px;gap:6px}
 .hud{display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .hud .logo-mini{
-  font-family:var(--font-sign);font-size:clamp(13px,3.6vw,18px);line-height:.9;
-  color:var(--creme);-webkit-text-stroke:2px var(--tinta);paint-order:stroke fill;
-  letter-spacing:.02em;text-align:left;
+  font-family:var(--font-sign);font-size:clamp(11px,3vw,16px);line-height:1.02;
+  color:var(--creme);-webkit-text-stroke:.06em var(--tinta);paint-order:stroke fill;
+  letter-spacing:.04em;text-align:left;flex:0 0 auto;padding-right:2px;
 }
 .hud .logo-mini i{display:block;font-style:normal;color:var(--coral)}
 .vezes{display:flex;gap:6px;flex:1;justify-content:center;min-width:0}
@@ -427,7 +448,9 @@ body.skin-papel .moldura.v::before{display:none}
   padding:.3em .9em;box-shadow:0 3px 0 rgba(26,26,26,.28);
   min-height:1.8em;display:flex;align-items:center;gap:.4em;
 }
-.dica b{font-family:var(--font-sign);letter-spacing:.03em}
+/* Mesma lição do balão: a Anton é fonte de cartaz e some em corpo miúdo.
+   Na pastilha de dica (10–14px) o destaque é peso + cor, nunca troca de família. */
+.dica b{font-weight:700;color:var(--coral-esc);letter-spacing:0}
 #btn-tapar{
   background:var(--coral);padding:.35em 1.1em .35em .55em;font-size:clamp(17px,5vw,26px);
 }
@@ -763,7 +786,7 @@ body.skin-papel .medalha .med-sombra{display:none}
       </svg>
 
       <div class="balao painel">
-        <b>Ô meu rei!</b><br>
+        <span class="fala">Ô meu rei!</span>
         Cava sete fileiras na areia molhada, tapa quantos buracos quiser — mas <b>quem tapar o último, leva um caldo!</b>
       </div>
     </div>
