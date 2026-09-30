@@ -214,7 +214,9 @@ namespace TapaBuraco.Game
             {
                 _pastilhaBorda[i].color = Palette.Ink;
                 _pastilhaMiolo[i].color = Palette.Sheet.WithAlpha(papel ? 0.4f : 0.86f);
-                _pastilhaBrilho[i].color = Palette.Accent.WithAlpha(0.35f);
+                // O realce do turno usa a COR DO JOGADOR: com o coral em ambos, as duas
+                // pastilhas ficavam iguais em valor e indistinguíveis no preto e branco.
+                _pastilhaBrilho[i].color = Palette.Player(i).WithAlpha(papel ? 0.45f : 0.6f);
                 _nomes[i].color = Palette.Text;
                 _pontos[i].color = Palette.AccentDark;
             }
@@ -237,8 +239,9 @@ namespace TapaBuraco.Game
             int raio = Mathf.RoundToInt(UiKit.Css(PillRadiusCss));
             Sprite caixa = SpriteFactory.RoundedRect(raio * 3, raio);
 
-            // O realce do turno (box-shadow 0 0 0 3px coral) vira uma moldura extra atrás.
-            Image brilho = UiKit.Picture(pastilha, "brilho", caixa, Palette.Accent.WithAlpha(0.35f));
+            // O realce do turno (box-shadow 0 0 0 3px coral) vira uma moldura extra atrás,
+            // já na cor de identidade do jogador.
+            Image brilho = UiKit.Picture(pastilha, "brilho", caixa, Palette.Player(indice).WithAlpha(0.6f));
             UiKit.FillParent(brilho.rectTransform, -UiKit.Css(3f));
             ScreenPanels.Ignore(brilho);
             _pastilhaBrilho[indice] = brilho;

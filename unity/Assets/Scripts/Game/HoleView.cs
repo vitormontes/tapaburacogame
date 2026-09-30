@@ -41,10 +41,23 @@ namespace TapaBuraco.Game
         /// <summary>Lado da textura dos rabiscos — um por buraco, então vale manter modesto.</summary>
         private const int SketchSize = 96;
 
+        // D3 — o anel de seleção sozinho lia a 2,00 contra a areia. Vira anel DUPLO: 3 CSS px
+        // de coral colados no buraco e 2 CSS px de tinta por fora (tinta × areia = 11,89).
+        // O halo translúcido que existia por fora saiu.
+        private const float SelInnerCss = 3f;
+        private const float SelOuterCss = 2f;
+
+        /// <summary>Espessura em texels do anel interno numa textura de 128 (≈3 CSS px).</summary>
+        private const int SelInnerThickness = 9;
+
+        /// <summary>Espessura em texels do anel externo numa textura de 128 (≈2 CSS px).</summary>
+        private const int SelOuterThickness = 5;
+
         private RectTransform _root;
         private RectTransform _core;
         private RectTransform _monteRt;
         private RectTransform _selRt;
+        private RectTransform _selOutRt;
         private RectTransform _rimRt;
         private RectTransform _dangerRt;
         private RectTransform _hatchRt;
@@ -54,6 +67,7 @@ namespace TapaBuraco.Game
         private Image _danger;
         private Image _cava;
         private Image _sel;
+        private Image _selOut;
         private Image _monte;
         private Image _hatch;
         private Button _button;
@@ -117,9 +131,15 @@ namespace TapaBuraco.Game
             _core = UiKit.Node(_root, "miolo");
             _cava = UiKit.Picture(_core, "cava", SpriteFactory.Cava(128), Color.white);
             UiKit.FillParent((RectTransform)_cava.transform);
-            _sel = UiKit.Picture(_core, "selecao", SpriteFactory.Ring(128, 9), Color.clear);
+            _sel = UiKit.Picture(_core, "selecao", SpriteFactory.Ring(128, SelInnerThickness), Color.clear);
             _selRt = Center(_sel);
             _sel.enabled = false;
+
+            // Anel externo de tinta: desenhado por fora do coral, é ele que garante o salto
+            // contra a areia. Fica no mesmo `_core` para pulsar junto.
+            _selOut = UiKit.Picture(_core, "selecao-tinta", SpriteFactory.Ring(128, SelOuterThickness), Color.clear);
+            _selOutRt = Center(_selOut);
+            _selOut.enabled = false;
 
             // 4. montinho de areia fofa por cima do buraco tapado.
             _monte = UiKit.Picture(_root, "monte", SpriteFactory.Monte(128), new Color(1f, 1f, 1f, 0f));
@@ -160,9 +180,13 @@ namespace TapaBuraco.Game
 
             _core.sizeDelta = new Vector2(unit, unit);
 
-            // `box-shadow:0 0 0 3px var(--coral)` → o anel sobra 3 CSS px de cada lado.
-            float ring = unit + UiKit.Css(6f);
+            // Anel interno: 3 CSS px colados na borda do buraco (sobra 3 de cada lado).
+            float ring = unit + (UiKit.Css(SelInnerCss) * 2f);
             _selRt.sizeDelta = new Vector2(ring, ring);
+
+            // Anel externo: 2 CSS px logo depois do coral, sem folga entre os dois.
+            float ringOut = ring + (UiKit.Css(SelOuterCss) * 2f);
+            _selOutRt.sizeDelta = new Vector2(ringOut, ringOut);
 
             // `.buraco .monte{inset:-6%}` → 1.12× (na skin Papel o CSS volta para inset:0).
             float monte = Palette.IsPaper ? unit : unit * 1.12f;
@@ -211,6 +235,8 @@ namespace TapaBuraco.Game
                 _selected = selected;
                 _sel.enabled = selected;
                 _sel.color = selected ? _selBase : Color.clear;
+                _selOut.enabled = selected;
+                _selOut.color = selected ? Palette.Ink : Color.clear;
                 if (!selected)
                 {
                     _core.localScale = Vector3.one;
@@ -338,6 +364,7 @@ namespace TapaBuraco.Game
             _selBase = Palette.Accent;
             _dangerBase = Palette.Accent;
             _sel.color = _selected ? _selBase : Color.clear;
+            _selOut.color = _selected ? Palette.Ink : Color.clear;
             _danger.color = _dangerOn ? _dangerBase.WithAlpha(0.6f) : Color.clear;
 
             // O inset do montinho muda de -6% para 0 na skin Papel: força o recálculo.

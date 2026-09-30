@@ -67,7 +67,8 @@
 
   <!-- areia -->
   <rect x="0" y="574" width="1200" height="226" fill="url(#gAreia)"/>
-  <g stroke="#B9985F" stroke-width="2" opacity=".35" fill="none">
+  <!-- marcas de areia: hachura 1,5 -->
+  <g stroke="#B9985F" stroke-width="1.5" opacity=".35" fill="none">
     <path d="M-20 612 q120 -10 240 0 t240 0 t240 0 t240 0 t240 0"/>
     <path d="M-20 664 q150 12 300 0 t300 0 t300 0 t300 0"/>
     <path d="M-20 726 q110 -12 220 0 t220 0 t220 0 t220 0 t220 0"/>

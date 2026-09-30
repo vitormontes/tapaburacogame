@@ -44,6 +44,9 @@ namespace TapaBuraco.Game
         public Image Icon;
         public PressPop Pop;
 
+        /// <summary>D4 — contorno de tinta do rótulo creme sobre coral. Nulo nos outros estilos.</summary>
+        public Outline LabelOutline;
+
         private ButtonStyle _style;
         private CanvasGroup _group;
 
@@ -97,6 +100,9 @@ namespace TapaBuraco.Game
         public Text Label;
         public Text Hint;
 
+        /// <summary>D4 — contorno de tinta usado só quando a opção está pressionada.</summary>
+        public Outline LabelOutline;
+
         private bool _pressed;
 
         /// <summary>Selecionado?</summary>
@@ -116,6 +122,15 @@ namespace TapaBuraco.Game
             Fill.color = _pressed ? Palette.Accent : Palette.Sheet.WithAlpha(0.55f);
             Border.color = Palette.Ink;
             Label.color = _pressed ? Palette.Sheet : Palette.Text;
+
+            // Creme sobre coral só passa no contraste com o contorno de tinta; solto, o texto
+            // fica no limite da ilegibilidade.
+            if (LabelOutline != null)
+            {
+                LabelOutline.effectColor = Palette.Ink;
+                LabelOutline.enabled = _pressed;
+            }
+
             if (Hint != null)
             {
                 Hint.color = (_pressed ? Palette.Sheet : Palette.Text).WithAlpha(_pressed ? 0.9f : 0.7f);
@@ -378,6 +393,14 @@ namespace TapaBuraco.Game
                 var fit = view.Label.gameObject.AddComponent<ContentSizeFitter>();
                 fit.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
                 fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+                // D4 — creme sobre coral dava 2,47 de contraste. O mesmo tratamento do
+                // logotipo resolve sem trocar a cor do botão. Creme/Small/Icon têm texto de
+                // tinta sobre creme e não precisam (nem devem levar) contorno.
+                if (style == ButtonStyle.Coral)
+                {
+                    view.LabelOutline = InkOutline(view.Label, Css(2f), Palette.Ink);
+                }
             }
 
             var button = view.Root.gameObject.AddComponent<Button>();
@@ -403,6 +426,12 @@ namespace TapaBuraco.Game
             if (view.Label != null)
             {
                 view.Label.color = TextColor(view.Style);
+            }
+
+            // O contorno existe só no estilo Coral; a skin Papel troca a cor da tinta.
+            if (view.LabelOutline != null)
+            {
+                view.LabelOutline.effectColor = Palette.Ink;
             }
         }
 
@@ -436,6 +465,7 @@ namespace TapaBuraco.Game
             view.Label = Label(content, "rotulo", label, BodyBold, FontSize(11f, 3.1f, 14f), Palette.Text);
             var labelFit = view.Label.gameObject.AddComponent<ContentSizeFitter>();
             labelFit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            view.LabelOutline = InkOutline(view.Label, Css(1.5f), Palette.Ink);
 
             if (!string.IsNullOrEmpty(hint))
             {

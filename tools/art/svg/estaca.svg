@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 44" preserveAspectRatio="none" aria-hidden="true">
-    <path d="M6 2 H34 L31 34 L20 42 L9 34 Z" fill="#A9713F" stroke="#7A4C26" stroke-width="2.5" stroke-linejoin="round"/>
-    <path d="M9 7 H31" stroke="#7A4C26" stroke-width="1.6" opacity=".5"/>
-    <path d="M9 30 H31" stroke="#7A4C26" stroke-width="1.6" opacity=".5"/>
-    <path d="M12 2 v32" stroke="#C4915F" stroke-width="1.4" opacity=".5"/>
+    <!-- silhueta 3,0 -->
+    <path d="M6 2 H34 L31 34 L20 42 L9 34 Z" fill="#A9713F" stroke="#7A4C26" stroke-width="3" stroke-linejoin="round"/>
+    <!-- veios da madeira: hachura 1,5 -->
+    <path d="M9 7 H31" stroke="#7A4C26" stroke-width="1.5" opacity=".5"/>
+    <path d="M9 30 H31" stroke="#7A4C26" stroke-width="1.5" opacity=".5"/>
+    <path d="M12 2 v32" stroke="#C4915F" stroke-width="1.5" opacity=".5"/>
   </svg>

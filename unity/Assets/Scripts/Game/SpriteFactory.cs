@@ -223,6 +223,11 @@ namespace TapaBuraco.Game
             Texture2D tex = NewTexture(size, size, false);
             Color32[] px = new Color32[size * size];
             float half = size * 0.5f;
+
+            // D1 — contorno de tinta-areia de 2 CSS px. O monte é desenhado em `size` texels e
+            // vai para a tela com ~1,12 u de lado; a 128 texels isso dá pouco mais de 3 texels.
+            // Escalar com `size` mantém a espessura estável se o sprite for pedido maior.
+            float stroke = Mathf.Max(1.5f, size * 0.025f);
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
@@ -246,7 +251,7 @@ namespace TapaBuraco.Game
                         Palette.AreiaClara, 0f,
                         Palette.AreiaMeia, 0.42f,
                         Palette.AreiaMolhada, 0.72f,
-                        Palette.AreiaEscura, 1f);
+                        Palette.MonteBase, 1f);
 
                     // Marca da pazinha: arco raso na parte de cima do montinho.
                     float mx = fx / (half * 0.52f);
@@ -256,6 +261,13 @@ namespace TapaBuraco.Game
                     {
                         float k = (1f - ring / 0.12f) * 0.35f;
                         c = Color.Lerp(c, Palette.AreiaSombra, k);
+                    }
+
+                    // Contorno na borda do monte: faixa de `stroke` texels colada no limite.
+                    float edge = Mathf.Clamp01(a - Coverage(d + stroke));
+                    if (edge > 0f)
+                    {
+                        c = Color.Lerp(c, Palette.MonteContorno, edge);
                     }
 
                     px[y * size + x] = ToColor32(c, a);

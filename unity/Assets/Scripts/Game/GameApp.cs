@@ -19,11 +19,18 @@ namespace TapaBuraco.Game
     [DisallowMultipleComponent]
     public sealed class GameApp : MonoBehaviour
     {
-        // Tempos do protótipo (index.html §4): um buraco a cada 115 ms, a areia cai 150 ms
-        // depois da pazinha, e a vez só passa 430 ms após o último buraco.
+        // Tempos do protótipo (index.html §4): um buraco a cada 115 ms e a vez só passa 430 ms
+        // após o último buraco. D5 — a areia agora cai 210 ms depois da pazinha, e não 150:
+        // os 60 ms extras são o hit-stop do impacto, o respiro que faz a pazinha "bater".
         private const float HoleStepSeconds = 0.115f;
-        private const float SandFallSeconds = 0.150f;
+        private const float SandFallSeconds = 0.210f;
         private const float TurnTailSeconds = 0.430f;
+
+        /// <summary>D5 — amplitude do tremor de derrota, em CSS px.</summary>
+        private const float ShakeAmplitudeCss = 4f;
+
+        /// <summary>D5 — duração do tremor de derrota.</summary>
+        private const float ShakeSeconds = 0.120f;
         private const float MachineThinkSeconds = 0.260f;
         private const float MachineMinTurnSeconds = 0.420f;
         private const float EndCardDelaySeconds = 0.520f;
@@ -40,6 +47,11 @@ namespace TapaBuraco.Game
 
         private Canvas _canvas;
         private RectTransform _uiRoot;
+        private RectTransform _shakeRoot;
+        private Vector2 _shakeHome;
+
+        /// <summary>Tempo corrido do tremor; negativo = parado.</summary>
+        private float _shakeTime = -1f;
         private Image _backdrop;
         private Image _grain;
         private Image _halftone;
@@ -179,6 +191,12 @@ namespace TapaBuraco.Game
             _backdrop.preserveAspect = false;
 
             RectTransform appArea = UiKit.Stretch(_uiRoot, "app", UiKit.Css(16f));
+
+            // D5 — alvo do tremor. O RectTransform do próprio Canvas é reescrito pelo
+            // CanvasScaler a cada quadro, então quem treme é a área do app logo abaixo dele:
+            // o cartaz de fundo e a moldura ficam parados, e o tabuleiro é que leva o tranco.
+            _shakeRoot = appArea;
+            _shakeHome = appArea.anchoredPosition;
 
             _title = new TitleScreen(appArea);
             _setup = new SetupScreen(appArea, _settings);
@@ -471,6 +489,13 @@ namespace TapaBuraco.Game
             RenderBoard();
             _game.Board.PlayCovered(row, index);
             UpdateHint();
+
+            // D5 — o tranco de tela é exclusivo do último buraco do tabuleiro: é o instante da
+            // derrota. Em qualquer outra jogada seria ruído gratuito.
+            if (_displayBoard.OpenCount == 0 && !_settings.reducedMotion)
+            {
+                _shakeTime = 0f;
+            }
         }
 
         /// <summary>Pensada da máquina: pausa curta, escolhe e mantém um tempo mínimo de "suspense".</summary>
@@ -507,6 +532,7 @@ namespace TapaBuraco.Game
             StopAllCoroutines();
             _turnRoutine = null;
             _session.IsBusy = false;
+            StopShake();
         }
 
         private void ShowEndCard(int winner)
@@ -661,7 +687,47 @@ namespace TapaBuraco.Game
                 _end.Tick(dt);
             }
 
+            TickShake(dt);
+
             HandleKeyboard();
+        }
+
+        /// <summary>
+        /// D5 — tranco de 4 px em 120 ms com decaimento linear. Três idas e voltas no eixo X
+        /// (meia no Y) e o alvo volta à posição EXATA no fim: nada de deriva acumulada quando
+        /// a partida seguinte começa.
+        /// </summary>
+        private void TickShake(float dt)
+        {
+            if (_shakeTime < 0f)
+            {
+                return;
+            }
+
+            _shakeTime += dt;
+            if (_shakeTime >= ShakeSeconds)
+            {
+                StopShake();
+                return;
+            }
+
+            float t = _shakeTime / ShakeSeconds;
+            float amplitude = UiKit.Css(ShakeAmplitudeCss) * (1f - t);
+            float phase = t * Mathf.PI * 6f;
+            _shakeRoot.anchoredPosition = new Vector2(
+                _shakeHome.x + (Mathf.Sin(phase) * amplitude),
+                _shakeHome.y + (Mathf.Cos(phase) * amplitude * 0.5f));
+        }
+
+        private void StopShake()
+        {
+            if (_shakeTime < 0f)
+            {
+                return;
+            }
+
+            _shakeTime = -1f;
+            _shakeRoot.anchoredPosition = _shakeHome;
         }
 
         private void HandleKeyboard()

@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40" aria-hidden="true">
-    <ellipse cx="40" cy="30" rx="38" ry="9" fill="#EBD097"/>
-    <path d="M22 30 q3 -24 18 -24 t18 24 z" fill="#E0C07A"/>
-    <path d="M22 28 h36 v6 h-36 z" fill="#E8765C"/>
+    <!-- aba levemente encolhida (rx 38→37, ry 9→8.5, cy 30→29) para o contorno de 3,0 caber no viewBox -->
+    <ellipse cx="40" cy="29" rx="37" ry="8.5" fill="#EBD097" stroke="#1A1A1A" stroke-width="3"/>
+    <path d="M22 30 q3 -24 18 -24 t18 24 z" fill="#E0C07A" stroke="#1A1A1A" stroke-width="3" stroke-linejoin="round"/>
+    <!-- fita: detalhe interno 2,0 -->
+    <path d="M22 28 h36 v6 h-36 z" fill="#E8765C" stroke="#1A1A1A" stroke-width="2" stroke-linejoin="round"/>
   </svg>

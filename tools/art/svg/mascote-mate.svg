@@ -21,16 +21,18 @@
           <ellipse cx="31" cy="10" rx="31" ry="9" fill="#E3E6E9" stroke="#8C9298" stroke-width="3"/>
           <rect x="0" y="40" width="62" height="16" fill="#E8765C"/>
           <rect x="0" y="62" width="62" height="7" fill="#2BA6A4"/>
-          <path d="M10 22 q8 -8 16 0" stroke="#fff" stroke-width="4" fill="none" opacity=".8" stroke-linecap="round"/>
+          <!-- brilho do barril: detalhe interno 2,0 -->
+          <path d="M10 22 q8 -8 16 0" stroke="#fff" stroke-width="2" fill="none" opacity=".8" stroke-linecap="round"/>
         </g>
         <!-- braço esquerdo com baldinho -->
         <path d="M78 176 q-22 20 -18 52" stroke="#E8B98D" stroke-width="20" fill="none" stroke-linecap="round"/>
         <g transform="translate(34,222)">
           <path d="M2 6 H46 L40 44 H8 Z" fill="#E8765C" stroke="#C94A32" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M2 6 q22 -16 44 0" stroke="#C94A32" stroke-width="3.5" fill="none"/>
+          <!-- alça do baldinho: detalhe interno 2,0 -->
+          <path d="M2 6 q22 -16 44 0" stroke="#C94A32" stroke-width="2" fill="none"/>
           <g transform="translate(30,-24) rotate(16)">
             <rect x="4" y="0" width="6" height="26" rx="3" fill="#7A4C26"/>
-            <path d="M-3 24 H17 L14 40 Q7 46 0 40 Z" fill="#F4EBD9" stroke="#7A4C26" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="M-3 24 H17 L14 40 Q7 46 0 40 Z" fill="#F4EBD9" stroke="#7A4C26" stroke-width="2" stroke-linejoin="round"/>
           </g>
         </g>
         <!-- cabeça -->
@@ -38,7 +40,8 @@
         <path d="M76 124 q36 26 72 0 q-6 34 -36 34 t-36 -34" fill="#DCA87C" opacity=".35"/>
         <circle cx="99" cy="118" r="4.2" fill="#1A1A1A"/>
         <circle cx="125" cy="118" r="4.2" fill="#1A1A1A"/>
-        <path d="M98 134 q14 13 28 0" stroke="#1A1A1A" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+        <!-- boca: detalhe interno 2,0 -->
+        <path d="M98 134 q14 13 28 0" stroke="#1A1A1A" stroke-width="2" fill="none" stroke-linecap="round"/>
         <ellipse cx="88" cy="130" rx="7" ry="4.5" fill="#E8765C" opacity=".4"/>
         <ellipse cx="136" cy="130" rx="7" ry="4.5" fill="#E8765C" opacity=".4"/>
         <!-- chapéu de palha -->

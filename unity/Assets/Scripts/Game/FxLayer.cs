@@ -21,6 +21,12 @@ namespace TapaBuraco.Game
         /// <summary>Duração do keyframe <c>puff</c>.</summary>
         private const float PuffSeconds = 0.55f;
 
+        /// <summary>D5 — clarão de impacto da pazinha: 60 ms, o tempo do hit-stop.</summary>
+        private const float FlashSeconds = 0.060f;
+
+        /// <summary>Opacidade do clarão (areia-clara a 40%).</summary>
+        private const float FlashAlpha = 0.40f;
+
         /// <summary>Grãos por buraco tapado (o laço <c>for(k&lt;12)</c> do protótipo).</summary>
         private const int GrainCount = 12;
 
@@ -44,6 +50,7 @@ namespace TapaBuraco.Game
 
         private readonly List<Fx> _shovels = new List<Fx>(4);
         private readonly List<Fx> _puffs = new List<Fx>(4);
+        private readonly List<Fx> _flashes = new List<Fx>(4);
         private readonly List<Fx> _grains = new List<Fx>(32);
 
         private RectTransform _root;
@@ -53,6 +60,7 @@ namespace TapaBuraco.Game
         // procurar sempre do zero viraria varredura quadrática à toa.
         private int _shovelCursor;
         private int _puffCursor;
+        private int _flashCursor;
         private int _grainCursor;
 
         /// <summary>Monta a camada de efeitos cobrindo o pai inteiro.</summary>
@@ -79,6 +87,10 @@ namespace TapaBuraco.Game
             if (!reducedMotion)
             {
                 SpawnShovel(localPosition, unit, skinAlpha);
+
+                // D5 — clarão no frame do impacto: é ele que dá o "estalo" antes do monte
+                // aparecer. Movimento reduzido não recebe nenhum dos dois.
+                SpawnFlash(localPosition, unit, skinAlpha);
             }
 
             SpawnPuff(localPosition, unit, skinAlpha);
@@ -95,6 +107,7 @@ namespace TapaBuraco.Game
         {
             Release(_shovels);
             Release(_puffs);
+            Release(_flashes);
             Release(_grains);
             _active = 0;
         }
@@ -111,6 +124,7 @@ namespace TapaBuraco.Game
             float dt = Time.unscaledDeltaTime;
             TickShovels(dt);
             TickPuffs(dt);
+            TickFlashes(dt);
             TickGrains(dt);
         }
 
@@ -206,6 +220,46 @@ namespace TapaBuraco.Game
             fx.Elapsed = 0f;
         }
 
+        // ------------------------------------------------------------------ clarão
+
+        /// <summary>D5 — o clarão só apaga; entra cheio no frame do impacto e some em 60 ms.</summary>
+        private void TickFlashes(float dt)
+        {
+            for (int k = 0; k < _flashes.Count; k++)
+            {
+                Fx fx = _flashes[k];
+                if (!fx.Active)
+                {
+                    continue;
+                }
+
+                fx.Elapsed += dt;
+                float p = fx.Elapsed / FlashSeconds;
+                if (p >= 1f)
+                {
+                    Stop(fx);
+                    continue;
+                }
+
+                fx.Img.color = Palette.AreiaClara.WithAlpha(Mathf.Lerp(FlashAlpha, 0f, p) * fx.Alpha);
+            }
+        }
+
+        private void SpawnFlash(Vector2 position, float unit, float skinAlpha)
+        {
+            Fx fx = Take(_flashes, ref _flashCursor, "clarao", SpriteFactory.SoftDisc(64, 1.4f), new Vector2(0.5f, 0.5f));
+
+            // ~1,2 u: cobre o buraco e um fio da areia em volta, sem virar holofote.
+            float side = unit * 1.2f;
+            fx.Rt.sizeDelta = new Vector2(side, side);
+            fx.Home = position;
+            fx.Rt.anchoredPosition = position;
+            fx.Rt.localScale = Vector3.one;
+            fx.Alpha = skinAlpha;
+            fx.Img.color = Palette.AreiaClara.WithAlpha(FlashAlpha * skinAlpha);
+            fx.Elapsed = 0f;
+        }
+
         // ------------------------------------------------------------------ grãos
 
         private void TickGrains(float dt)
@@ -264,12 +318,13 @@ namespace TapaBuraco.Game
 
         private void Prewarm()
         {
-            // Dois lances seguidos já enchem a tela: 2 pazinhas, 2 bafos e 24 grãos cobrem
-            // o caso comum sem nenhuma alocação em partida.
+            // Dois lances seguidos já enchem a tela: 2 pazinhas, 2 bafos, 2 clarões e 24 grãos
+            // cobrem o caso comum sem nenhuma alocação em partida.
             for (int k = 0; k < 2; k++)
             {
                 Park(NewItem(_shovels, "pazinha", UiKit.Art("pazinha"), new Vector2(0.5f, 0f)));
                 Park(NewItem(_puffs, "poeira", SpriteFactory.SoftDisc(128, 2.4f), new Vector2(0.5f, 0.5f)));
+                Park(NewItem(_flashes, "clarao", SpriteFactory.SoftDisc(64, 1.4f), new Vector2(0.5f, 0.5f)));
             }
 
             for (int k = 0; k < 24; k++)

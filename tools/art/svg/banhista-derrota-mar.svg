@@ -1,13 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" class="figura" viewBox="0 0 160 240" aria-hidden="true">
     <ellipse cx="80" cy="232" rx="42" ry="7" fill="#8E7038" opacity=".3"/>
-    <rect x="64" y="150" width="18" height="74" rx="9" fill="#E8B98D"/>
-    <rect x="84" y="150" width="18" height="74" rx="9" fill="#D8A87C"/>
-    <path d="M56 118 H110 L106 158 H60 Z" fill="#2BA6A4"/>
+    <!-- pernas: contorno de silhueta 3,0 (D7) -->
+    <rect x="64" y="150" width="18" height="74" rx="9" fill="#E8B98D" stroke="#1A1A1A" stroke-width="3"/>
+    <rect x="84" y="150" width="18" height="74" rx="9" fill="#D8A87C" stroke="#1A1A1A" stroke-width="3"/>
+    <!-- calção: identidade do jogador 2 (D2 — #2BA6A4 vira #155F61 para separar em preto e branco) -->
+    <path d="M56 118 H110 L106 158 H60 Z" fill="#155F61" stroke="#1A1A1A" stroke-width="3" stroke-linejoin="round"/>
     <path d="M56 118 H110 V128 H56 Z" fill="rgba(0,0,0,.18)"/>
-    <path d="M58 62 q25 -14 50 0 l8 60 q-33 10 -66 0 Z" fill="#F4EBD9"/>
+    <path d="M58 62 q25 -14 50 0 l8 60 q-33 10 -66 0 Z" fill="#F4EBD9" stroke="#1A1A1A" stroke-width="3" stroke-linejoin="round"/>
+    <!-- braços caídos: o traço de 15 É o membro; o contorno é a cópia por baixo a 15+2×3=21 -->
+    <path d="M60 78 q-32 8 -40 34" stroke="#1A1A1A" stroke-width="21" fill="none" stroke-linecap="round"/>
+    <path d="M106 78 q34 6 42 30" stroke="#1A1A1A" stroke-width="21" fill="none" stroke-linecap="round"/>
     <path d="M60 78 q-32 8 -40 34" stroke="#E8B98D" stroke-width="15" fill="none" stroke-linecap="round"/>
-         <path d="M106 78 q34 6 42 30" stroke="#E8B98D" stroke-width="15" fill="none" stroke-linecap="round"/>
-    <circle cx="83" cy="42" r="27" fill="#E8B98D"/>
+    <path d="M106 78 q34 6 42 30" stroke="#E8B98D" stroke-width="15" fill="none" stroke-linecap="round"/>
+    <circle cx="83" cy="42" r="27" fill="#E8B98D" stroke="#1A1A1A" stroke-width="3"/>
     <circle cx="74" cy="38" r="3.4" fill="#1A1A1A"/>
     <circle cx="92" cy="38" r="3.4" fill="#1A1A1A"/>
     <ellipse cx="83" cy="54" rx="9" ry="7" fill="#1A1A1A"/>

@@ -12,9 +12,17 @@ namespace TapaBuraco.Game
     /// </summary>
     public sealed class EndScreen
     {
-        private const int Confetes = 16;
+        // D5 — de 16 para 10 confetes, com a queda concentrada em 1,2 s: antes a chuva durava
+        // até 3,4 s e disputava o olhar com a figura do banhista, que é o assunto da cena.
+        private const int Confetes = 10;
+        private const float ConfeteQuedaMin = 0.85f;
+        private const float ConfeteQuedaMax = 1.20f;
         private const float CicloCaldo = 2.4f;
         private const float CicloFesta = 1.1f;
+
+        // D6 — a medalha entra com plop depois que o título já assentou.
+        private const float MedalhaAtraso = 0.25f;
+        private const float MedalhaDuracao = 0.35f;
 
         private readonly RectTransform _root;
         private readonly PanelView _cartao;
@@ -43,6 +51,7 @@ namespace TapaBuraco.Game
         private readonly Text _ponto1;
         private readonly Text _ponto2;
         private readonly Text _vezes;
+        private readonly Image _medalha;
 
         private readonly ButtonView _menu;
         private readonly ButtonView _denovo;
@@ -116,8 +125,8 @@ namespace TapaBuraco.Game
                 rt.anchoredPosition = Vector2.zero;
 
                 _confete[i] = rt;
-                _confeteDuracao[i] = 1.6f + ((float)sorteio.NextDouble() * 1.8f);
-                _confeteAtraso[i] = (float)sorteio.NextDouble() * 2f;
+                _confeteDuracao[i] = ConfeteQuedaMin + ((float)sorteio.NextDouble() * (ConfeteQuedaMax - ConfeteQuedaMin));
+                _confeteAtraso[i] = (float)sorteio.NextDouble() * 0.35f;
             }
 
             _palcoBorda = UiKit.Picture(_palco, "borda", SpriteFactory.RoundedOutline(72, 22, 7), Palette.Ink);
@@ -136,6 +145,12 @@ namespace TapaBuraco.Game
             _vezes = Marcador(placar, "x", "×", tamanhoNome, Palette.AccentDark);
             _ponto2 = Marcador(placar, "p2", "0", tamanhoPonto, Palette.Text);
             _nome2 = Marcador(placar, "n2", string.Empty, tamanhoNome, Palette.Text);
+
+            // D6 — medalha do vencedor colada no placar, na cor de identidade dele. O PNG é
+            // 256×384 (viewBox 64×96), então a caixa mantém a proporção 2:3.
+            _medalha = UiKit.Picture(placar, "medalha", null, Color.white);
+            _medalha.preserveAspect = true;
+            UiKit.Size(_medalha, 34f, 51f);
 
             // ------------------------------------------------------------- botões
             RectTransform linhaBtn = UiKit.Node(corpo, "linha-btn");
@@ -200,6 +215,12 @@ namespace TapaBuraco.Game
             _chapeu.enabled = !humanWon;
             _onda.enabled = !humanWon;
 
+            // D6 — a medalha é do VENCEDOR, ganhando ele ou não a simpatia da plateia.
+            // A cor do sprite é a de identidade do vencedor; a fita já vem listrada nela.
+            _medalha.sprite = UiKit.Art(winner == 0 ? "medalha-coral" : "medalha-mar");
+            PintaMedalha();
+            _medalha.rectTransform.localScale = reducedMotion ? Vector3.one : new Vector3(0.4f, 0.4f, 1f);
+
             SetVisible(true);
             Quadro();
         }
@@ -247,6 +268,7 @@ namespace TapaBuraco.Game
             _ponto1.color = Palette.Text;
             _ponto2.color = Palette.Text;
             _vezes.color = Palette.AccentDark;
+            PintaMedalha();
 
             UiKit.RepaintButton(_menu);
             UiKit.RepaintButton(_denovo);
@@ -264,6 +286,57 @@ namespace TapaBuraco.Game
             {
                 QuadroDerrota();
             }
+
+            QuadroMedalha();
+        }
+
+        /// <summary>
+        /// D6 — plop de entrada da medalha: 0.4 → 1.15 → 1.0 em 0,35 s, começando 0,25 s depois
+        /// do título. Com movimento reduzido nem passa por aqui (o <see cref="Tick"/> sai antes
+        /// e o <see cref="Show"/> já deixou a medalha no tamanho final).
+        /// </summary>
+        private void QuadroMedalha()
+        {
+            if (_reduzido)
+            {
+                return;
+            }
+
+            float t = _tempo - MedalhaAtraso;
+            float escala;
+            if (t <= 0f)
+            {
+                escala = 0.4f;
+            }
+            else if (t >= MedalhaDuracao)
+            {
+                escala = 1f;
+            }
+            else
+            {
+                float p = t / MedalhaDuracao;
+                escala = p < 0.6f
+                    ? Mathf.Lerp(0.4f, 1.15f, Suave(p / 0.6f))
+                    : Mathf.Lerp(1.15f, 1f, Suave((p - 0.6f) / 0.4f));
+            }
+
+            _medalha.rectTransform.localScale = new Vector3(escala, escala, 1f);
+        }
+
+        /// <summary>Saída suave (o <c>ease-out</c> do CSS).</summary>
+        private static float Suave(float t)
+        {
+            float u = 1f - Mathf.Clamp01(t);
+            return 1f - (u * u);
+        }
+
+        /// <summary>
+        /// Na skin Papel de Pão não existe PNG de medalha desenhada a caneta: tingir o mesmo
+        /// recorte com <see cref="Palette.Caneta"/> entrega o traço azul sobre papel pardo.
+        /// </summary>
+        private void PintaMedalha()
+        {
+            _medalha.color = Palette.IsPaper ? Palette.Caneta : Color.white;
         }
 
         private void QuadroVitoria()

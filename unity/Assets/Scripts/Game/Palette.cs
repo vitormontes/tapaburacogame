@@ -21,6 +21,12 @@ namespace TapaBuraco.Game
         public static readonly Color AreiaBase = Hex(0xCBAA71);
         public static readonly Color AreiaFundo = Hex(0xC2A374);
 
+        // D1 — o monte de areia que tapa o buraco lia a 1,28 de contraste contra a areia do
+        // fundo: virava mancha chapada. A base do gradiente desce de #B9985F para #9C7A3E
+        // (contraste 2,72) e ganha contorno #5E4720 (5,98), dando rampa de valor 87→21.
+        public static readonly Color MonteBase = Hex(0x9C7A3E);
+        public static readonly Color MonteContorno = Hex(0x5E4720);
+
         public static readonly Color Mar = Hex(0x2BA6A4);
         public static readonly Color MarFundo = Hex(0x1C7E80);
         public static readonly Color MarClaro = Hex(0x57C2B4);
@@ -68,8 +74,15 @@ namespace TapaBuraco.Game
         /// <summary>Fundo da tela inteira.</summary>
         public static Color Background => IsPaper ? Papel : Hex(0x0D4C55);
 
-        /// <summary>Cor do jogador 1 / jogador 2 no HUD.</summary>
-        public static Color Player(int index) => index == 0 ? Coral : Mar;
+        // D2 — coral e mar tinham o MESMO valor em preto e branco (contraste 1,01): quem não
+        // distingue matiz via dois jogadores idênticos. As cores de IDENTIDADE se separam em
+        // valor (41 × 9, contraste 3,26); Coral/Mar seguem intactos como cor de interface e
+        // de cenário.
+        public static readonly Color JogadorUm = Hex(0xF3937A);
+        public static readonly Color JogadorDois = Hex(0x155F61);
+
+        /// <summary>Cor de identidade do jogador 1 / jogador 2 (guarda-sol, pastilha, medalha).</summary>
+        public static Color Player(int index) => index == 0 ? JogadorUm : JogadorDois;
 
         public static void SetSkin(Skin skin)
         {

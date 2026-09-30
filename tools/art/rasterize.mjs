@@ -11,31 +11,31 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "../..");
+const svgDir = resolve(here, "svg");
 const outDir = resolve(root, "unity/Assets/Resources/Art");
 mkdirSync(outDir, { recursive: true });
 
-// Largura de saída por arquivo. Tudo potência de 2 onde dá, para ASTC não desperdiçar.
-const widths = {
-  "cena-praia.svg": 2048,
-  "mascote-mate.svg": 1024,
-  "espuma.svg": 1024,
-  "estaca.svg": 256,
-  "pazinha.svg": 256,
-  "chapeu-palha.svg": 256,
-  "onda-caldo.svg": 1024,
-  "guardasol-coral.svg": 256,
-  "guardasol-mar.svg": 256,
-  "guardasol-amarelo.svg": 256,
-  "banhista-vitoria-coral.svg": 512,
-  "banhista-vitoria-mar.svg": 512,
-  "banhista-derrota-coral.svg": 512,
-  "banhista-derrota-mar.svg": 512,
-};
+// Densidade única: 4 px por unidade de viewBox (D7). Assim uma espessura de traço em
+// unidades de viewBox vale o mesmo peso de tela em qualquer arquivo — sem isso, estaca
+// (40 un) e banhista (160 un) sairiam com pesos diferentes apesar do mesmo número.
+const DENSIDADE = 4;
+
+// Exceção: cena-praia é fundo de tela cheia (1200×800 un). A 4 px/un daria 4800×3200,
+// desperdício de memória no celular — um fundo é visto esticado e sem detalhe fino,
+// então fica travado em 2048 de largura (~1,71 px/un).
+const larguraMaxima = { "cena-praia.svg": 2048 };
+
+/** Largura do viewBox, em unidades. */
+function larguraViewBox(svg) {
+  const m = svg.match(/viewBox\s*=\s*"\s*[-\d.]+\s+[-\d.]+\s+([\d.]+)\s+([\d.]+)/);
+  if (!m) throw new Error("viewBox ausente ou malformado");
+  return Number(m[1]);
+}
 
 let count = 0;
 for (const file of readdirSync(svgDir).filter((f) => f.endsWith(".svg"))) {
   const svg = readFileSync(resolve(svgDir, file), "utf8");
-  const width = widths[file] ?? 512;
+  const width = Math.min(Math.round(larguraViewBox(svg) * DENSIDADE), larguraMaxima[file] ?? Infinity);
 
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: width },
