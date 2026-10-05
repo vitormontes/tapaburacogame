@@ -1,150 +1,216 @@
-using System.Collections.Generic;
+using System;
+using System.Diagnostics;
+using System.Threading;
 
 namespace TapaBuraco.Core
 {
     /// <summary>
-    /// Resolve a partida por busca exaustiva memoizada — nada de heurística.
-    /// Regra misère: quem tapa o ÚLTIMO buraco perde, então um sucessor vazio nunca é lance vencedor.
+    /// Solver misère exato com tempo-limite — o <c>vence()</c> do protótipo web.
+    /// Busca em profundidade sobre o bitmask: o jogador da vez vence se algum trecho legal
+    /// deixa o adversário perdido; tabuleiro vazio = o adversário acabou de tapar o último
+    /// buraco, então quem está na vez venceu.
     ///
-    /// Livre  → pedaços são pilhas de Nim; há fórmula fechada (ver <see cref="MisereNimWins"/>),
-    ///          validada contra a busca exaustiva nos testes.
-    /// Vizinhos → tapar um bloco contíguo pode PARTIR o pedaço em dois; a busca memoizada cobre isso.
-    ///          (O espaço de estados é minúsculo: partições de ≤28 com partes ≤7.)
+    /// Tabela de transposição em endereçamento aberto: chave+1 (0 = vaga livre) e valor
+    /// 1 = perde / 2 = vence; 4 Mi de vagas (~20 MB), alocada na primeira busca e mantida entre
+    /// lances e partidas. Passou de 70% de ocupação, zera tudo. A posição e o espelho pela
+    /// diagonal dividem a mesma entrada (chave = menor das duas máscaras).
+    ///
+    /// Não é thread-safe: uma busca por vez (a <see cref="GameSession"/> enfileira as pensadas).
     /// </summary>
     public sealed class MisereSolver
     {
-        private readonly Dictionary<ulong, bool>[] _memo =
-        {
-            new Dictionary<ulong, bool>(4096),
-            new Dictionary<ulong, bool>(4096),
-        };
+        /// <summary>Sem prazo.</summary>
+        public const int NoTimeLimit = -1;
 
-        /// <summary>Desligue para forçar a busca exaustiva também na variante Livre (usado nos testes).</summary>
-        public bool UseClosedFormForLivre { get; set; } = true;
+        private const int Bits = 22;
+        private const int Size = 1 << Bits;
+        private const int SlotMask = Size - 1;
+        private const int ClearThreshold = (int)(Size * 0.7);
 
-        /// <summary>Estados distintos já resolvidos (diagnóstico).</summary>
-        public int MemoSize(Variant variant) => _memo[(int)variant].Count;
+        private const byte Lose = 1;
+        private const byte Win = 2;
 
-        /// <summary>true se quem está na vez vence com jogo perfeito.</summary>
-        public bool CurrentPlayerWins(Position position, Variant variant)
-        {
-            if (position.IsEmpty)
-            {
-                // Tabuleiro vazio: o lance anterior tapou o último buraco e perdeu.
-                return true;
-            }
+        private int[] _keys;
+        private byte[] _values;
+        private int _used;
 
-            if (variant == Variant.Livre && UseClosedFormForLivre)
-            {
-                return MisereNimWins(position);
-            }
+        private long _nodes;
+        private long _deadlineTicks;
+        private CancellationToken _token;
 
-            return Search(position, variant);
-        }
+        /// <summary>Entradas ocupadas na tabela (diagnóstico).</summary>
+        public int TableCount => _used;
 
-        /// <summary>true se quem está na vez vence a partir deste tabuleiro.</summary>
-        public bool CurrentPlayerWins(in Board board, Variant variant)
-            => CurrentPlayerWins(board.ToPosition(variant), variant);
+        /// <summary>Nós visitados na última busca (diagnóstico).</summary>
+        public long LastNodes => _nodes;
 
         /// <summary>
-        /// Lance vencedor: deixa o tabuleiro NÃO vazio e o adversário perdendo.
-        /// Tapar o último buraco (sucessor vazio) é derrota imediata.
+        /// true se o jogador da vez vence a partir de <paramref name="mask"/>; null se o prazo
+        /// acabou (ou a busca foi cancelada) antes da prova.
         /// </summary>
-        public bool IsWinningMove(in Board board, Variant variant, in Move move)
+        public bool? CurrentPlayerWins(uint mask, int timeLimitMs = NoTimeLimit, CancellationToken token = default)
         {
-            Board after = board.Apply(move);
-            if (after.IsEmpty)
+            Prepare(timeLimitMs, token);
+            try
             {
-                return false;
+                return Wins(mask & Board.FullMask);
             }
-
-            return !CurrentPlayerWins(after.ToPosition(variant), variant);
-        }
-
-        /// <summary>Resolve antecipadamente o tabuleiro cheio (aquece o memo fora do frame crítico).</summary>
-        public void Prewarm(Variant variant)
-        {
-            CurrentPlayerWins(Board.Dug.ToPosition(variant), variant);
+            catch (SearchAborted)
+            {
+                return null;
+            }
         }
 
         /// <summary>
-        /// Fórmula fechada do Nim misère (Bouton): com alguma pilha ≥ 2 vale o XOR normal;
-        /// com todas as pilhas de tamanho 1 vence quem enxerga um número PAR de pilhas.
+        /// Procura, na ordem de <paramref name="candidates"/>, um trecho legal que deixe o
+        /// adversário perdido. Devolve o índice do trecho, -1 se nenhum vence, ou null se o
+        /// prazo acabou antes da prova.
         /// </summary>
-        public static bool MisereNimWins(Position position)
+        public int? FindWinningMove(uint mask, int[] candidates, int count, int timeLimitMs = NoTimeLimit, CancellationToken token = default)
         {
-            if (position.IsEmpty)
+            mask &= Board.FullMask;
+            Prepare(timeLimitMs, token);
+            try
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    int segment = candidates[i];
+                    uint s = Segments.MaskOf(segment);
+                    if ((s & mask) == s && !Wins(mask ^ s))
+                    {
+                        return segment;
+                    }
+                }
+
+                return -1;
+            }
+            catch (SearchAborted)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>Esvazia a tabela de transposição.</summary>
+        public void Clear()
+        {
+            if (_keys != null)
+            {
+                Array.Clear(_keys, 0, _keys.Length);
+            }
+
+            _used = 0;
+        }
+
+        private void Prepare(int timeLimitMs, CancellationToken token)
+        {
+            if (_keys == null)
+            {
+                _keys = new int[Size];
+                _values = new byte[Size];
+            }
+
+            _nodes = 0;
+            _token = token;
+            _deadlineTicks = timeLimitMs < 0
+                ? long.MaxValue
+                : Stopwatch.GetTimestamp() + (timeLimitMs * Stopwatch.Frequency / 1000L);
+        }
+
+        private bool Wins(uint mask)
+        {
+            if (mask == 0u)
             {
                 return true;
             }
 
-            if (position.HasBigPart)
+            uint mirror = Board.Transpose(mask);
+            int key = (int)(mask < mirror ? mask : mirror);
+            byte known = Read(key);
+            if (known != 0)
             {
-                return position.NimXor != 0;
+                return known == Win;
             }
 
-            return (position.CountOf(1) & 1) == 0;
+            if ((++_nodes & 4095) == 0
+                && (Stopwatch.GetTimestamp() > _deadlineTicks || _token.IsCancellationRequested))
+            {
+                throw SearchAborted.Instance;
+            }
+
+            bool wins = false;
+            int count = Segments.Count;
+            for (int k = 0; k < count; k++)
+            {
+                uint s = Segments.MaskOf(Segments.InSearchOrder(k));
+                if ((s & mask) == s && !Wins(mask ^ s))
+                {
+                    wins = true;
+                    break;
+                }
+            }
+
+            Write(key, wins ? Win : Lose);
+            return wins;
         }
 
-        private bool Search(Position position, Variant variant)
+        private static int Slot(int key) => (int)(((uint)key * 0x9E3779B1u) >> (32 - Bits));
+
+        private byte Read(int key)
         {
-            Dictionary<ulong, bool> memo = _memo[(int)variant];
-            if (memo.TryGetValue(position.Key, out bool cached))
+            int h = Slot(key);
+            int stored = key + 1;
+            while (true)
             {
-                return cached;
+                int x = _keys[h];
+                if (x == 0)
+                {
+                    return 0;
+                }
+
+                if (x == stored)
+                {
+                    return _values[h];
+                }
+
+                h = (h + 1) & SlotMask;
+            }
+        }
+
+        private void Write(int key, byte value)
+        {
+            if (_used > ClearThreshold)
+            {
+                Array.Clear(_keys, 0, _keys.Length);
+                _used = 0;
             }
 
-            bool win = false;
-            for (int size = 1; size <= Rules.RowCount && !win; size++)
+            int h = Slot(key);
+            int stored = key + 1;
+            while (true)
             {
-                if (position.CountOf(size) == 0)
+                int x = _keys[h];
+                if (x == 0)
                 {
-                    continue;
+                    _keys[h] = stored;
+                    _values[h] = value;
+                    _used++;
+                    return;
                 }
 
-                Position rest = position.WithoutPart(size);
-
-                if (variant == Variant.Vizinhos)
+                if (x == stored)
                 {
-                    // Tapa um bloco contíguo: sobram um pedaço à esquerda e outro à direita.
-                    for (int left = 0; left < size && !win; left++)
-                    {
-                        for (int right = 0; left + right < size && !win; right++)
-                        {
-                            Position next = rest.WithPart(left).WithPart(right);
-                            if (next.IsEmpty)
-                            {
-                                continue; // tapou o último buraco: derrota, não conta como lance vencedor
-                            }
-
-                            if (!Search(next, variant))
-                            {
-                                win = true;
-                            }
-                        }
-                    }
+                    _values[h] = value;
+                    return;
                 }
-                else
-                {
-                    // Livre: a fileira encolhe para qualquer tamanho menor.
-                    for (int remaining = 0; remaining < size && !win; remaining++)
-                    {
-                        Position next = rest.WithPart(remaining);
-                        if (next.IsEmpty)
-                        {
-                            continue;
-                        }
 
-                        if (!Search(next, variant))
-                        {
-                            win = true;
-                        }
-                    }
-                }
+                h = (h + 1) & SlotMask;
             }
+        }
 
-            memo[position.Key] = win;
-            return win;
+        /// <summary>Prazo estourado ou busca cancelada: desenrola a recursão de uma vez.</summary>
+        private sealed class SearchAborted : Exception
+        {
+            public static readonly SearchAborted Instance = new SearchAborted();
         }
     }
 }

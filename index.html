@@ -197,7 +197,8 @@ body.skin-papel .moldura.v::before{display:none}
 #tela-titulo{align-items:center;justify-content:space-between;padding:10px 12px 6px;gap:6px}
 #tela-titulo .topo{margin-top:clamp(4px,3vh,34px)}
 #tela-titulo .meio{display:flex;align-items:flex-end;justify-content:center;gap:clamp(6px,3vw,30px);flex:1;min-height:0;width:100%}
-#mascote{height:min(46vh,340px);width:auto;max-width:46%;filter:drop-shadow(0 6px 0 rgba(26,26,26,.2))}
+/* max-height: o mascote cabe no espaço que sobra entre logo e botões, nunca cobre os botões */
+#mascote{height:min(46vh,340px);max-height:100%;width:auto;max-width:46%;filter:drop-shadow(0 6px 0 rgba(26,26,26,.2))}
 .balao{
   max-width:min(56%,320px);align-self:center;
   padding:.8em 1em;font-size:clamp(12px,3.4vw,16px);line-height:1.35;
@@ -215,12 +216,42 @@ body.skin-papel .moldura.v::before{display:none}
   content:"";position:absolute;left:-15px;bottom:26px;
   border:9px solid transparent;border-right-color:var(--tinta);
 }
-#tela-titulo .base{display:flex;flex-direction:column;align-items:center;gap:10px;padding-bottom:8px;width:100%}
+#tela-titulo .base{display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:8px;width:100%}
 .linha-btn{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 
-/* ---------- setup ---------- */
-#tela-setup{padding:10px;align-items:center;overflow:auto}
-.setup-wrap{width:min(560px,100%);margin:auto;padding:14px 14px 18px;display:flex;flex-direction:column;gap:12px}
+/* ---------- escolha de modo e de adversário (tela título) ---------- */
+.escolha{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;width:min(640px,100%)}
+.escolha[hidden]{display:none}
+.escolha .btn{flex:1 1 230px;white-space:nowrap}
+.niveis{display:flex;gap:8px;width:100%}
+.nivel{
+  flex:1 1 0;min-width:0;
+  font-family:var(--font-sign);letter-spacing:.04em;text-transform:uppercase;
+  font-size:clamp(13px,3.8vw,19px);line-height:1.05;
+  color:var(--tinta);background:var(--creme);
+  border:3px solid var(--tinta);border-radius:8px;
+  padding:.6em .35em .5em;cursor:pointer;
+  box-shadow:0 5px 0 var(--tinta);
+  transition:transform .08s, box-shadow .08s;
+}
+.nivel small{display:block;margin-top:.35em;font-family:var(--font-body);font-style:italic;font-weight:400;
+  text-transform:none;letter-spacing:0;font-size:.64em;opacity:.78}
+.nivel:active{transform:translateY(4px);box-shadow:0 1px 0 var(--tinta)}
+/* o último adversário escolhido fica aceso: é o "padrão" sem precisar de um seletor extra */
+.nivel.ultimo{background:var(--coral);color:var(--creme);-webkit-text-stroke:.05em var(--tinta);paint-order:stroke fill}
+.nivel.ultimo small{-webkit-text-stroke:0;opacity:.95}
+.links{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.link{
+  font-family:var(--font-body);font-weight:700;font-style:italic;font-size:clamp(13px,3.4vw,16px);
+  color:var(--tinta);background:rgba(244,235,217,.82);border:0;border-radius:20px;
+  padding:.35em .95em;cursor:pointer;
+  text-decoration:underline;text-underline-offset:.22em;text-decoration-thickness:1.5px;
+}
+.link[hidden]{display:none}
+.link:hover{background:var(--creme)}
+:is(.btn,.nivel,.link,.opt,.icobtn,.buraco):focus-visible{outline:3px solid var(--coral-esc);outline-offset:3px}
+
+/* ---------- grupos de opção (modal de ajustes) ---------- */
 .grupo{display:flex;flex-direction:column;gap:6px}
 .grupo>.rot{
   font-family:var(--font-sign);font-size:clamp(13px,3.6vw,17px);letter-spacing:.09em;
@@ -315,8 +346,9 @@ body.skin-papel .moldura.v::before{display:none}
 /* espuma da beira d'água no topo da areia */
 .espuma{position:absolute;top:-6px;left:-5%;width:110%;height:26px;opacity:.75;pointer-events:none}
 
-#tabuleiro{position:relative;display:flex;flex-direction:column;gap:var(--gap);z-index:2}
-.fileira{display:flex;align-items:center;justify-content:center;gap:var(--gap)}
+#tabuleiro{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:var(--gap);z-index:2}
+/* escada alinhada à esquerda: as colunas ficam retas, que é o que dá sentido à jogada na vertical */
+.fileira{display:flex;align-items:center;justify-content:flex-start;gap:var(--gap)}
 .estaca{
   flex:0 0 auto;width:var(--estaca);height:calc(var(--u)*1.08);
   position:relative;display:grid;place-items:center;
@@ -513,6 +545,7 @@ body.skin-papel .moldura.v::before{display:none}
 .modal-card{width:min(520px,100%);max-height:86vh;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
 .modal-card h2{font-family:var(--font-sign);font-size:clamp(20px,6vw,30px);margin:0;letter-spacing:.05em;color:var(--coral-esc)}
 .modal-card p{margin:0;font-size:clamp(12px,3.4vw,15px);line-height:1.45}
+.modal-card p.nota{font-size:12px;font-style:italic;opacity:.75}
 .modal-card ul{margin:0;padding-left:1.1em;font-size:clamp(12px,3.4vw,15px);line-height:1.5}
 .modal-card li{margin-bottom:.3em}
 .modal-card b{color:var(--coral-esc)}
@@ -538,6 +571,9 @@ body.skin-papel .btn.mar{background:rgba(46,76,168,.18)}
 body.skin-papel .icobtn{background:rgba(255,255,255,.3);border-color:#22336E;box-shadow:2px 2px 0 rgba(34,51,110,.5)}
 body.skin-papel .opt{border-color:#22336E;background:rgba(255,255,255,.3)}
 body.skin-papel .opt[aria-pressed="true"]{background:rgba(46,76,168,.75);color:#F7ECD6}
+body.skin-papel .nivel{background:rgba(255,255,255,.35);color:#22336E;border-color:#22336E;box-shadow:2px 3px 0 #22336E}
+body.skin-papel .nivel.ultimo{background:rgba(46,76,168,.75);color:#F7ECD6;-webkit-text-stroke:0}
+body.skin-papel .link{background:rgba(255,255,255,.35);color:#22336E}
 body.skin-papel .areia-box{
   background:rgba(255,255,255,.22);
   border-color:#22336E;box-shadow:2px 4px 0 rgba(34,51,110,.35);
@@ -599,6 +635,15 @@ body.skin-papel .medalha .med-sombra{display:none}
 @media (max-height:520px) and (orientation:landscape){
   #tela-titulo .meio{align-items:center}
   #mascote{height:min(58vh,300px)}
+  /* celular deitado: logo medido pela altura e botões mais baixos, para o
+     mascote e o balão terem onde ficar sem cobrir a escolha de modo */
+  #tela-titulo .topo{margin-top:0}
+  .logo .l1{font-size:min(8.6vw,10vh)}
+  .logo .l2{font-size:min(12vw,14vh)}
+  .logo .sub{margin-top:.3em}
+  .balao{font-size:12px;padding:.5em .8em}
+  #tela-titulo .base{gap:6px;padding-bottom:2px}
+  .escolha .btn{padding:.35em 1em}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.05ms !important}
@@ -787,71 +832,26 @@ body.skin-papel .medalha .med-sombra{display:none}
 
       <div class="balao painel">
         <span class="fala">Ô meu rei!</span>
-        Cava sete fileiras na areia molhada, tapa quantos buracos quiser — mas <b>quem tapar o último, leva um caldo!</b>
+        Tapa quantos buracos quiser em <b>linha reta</b>, deitada ou em pé — mas <b>quem tapar o último, leva um caldo!</b>
       </div>
     </div>
 
     <div class="base">
-      <div class="linha-btn">
-        <button class="btn" id="ir-setup">Jogar</button>
-        <button class="btn creme" id="ir-regras">Como joga</button>
+      <div class="escolha" id="escolha-modo">
+        <button class="btn" id="ir-cpu">Contra o computador</button>
+        <button class="btn mar" id="ir-2p">2 jogadores</button>
       </div>
-    </div>
-  </section>
-
-  <!-- ================= TELA SETUP ================= -->
-  <section class="tela" id="tela-setup">
-    <div class="setup-wrap painel">
-      <h2 class="logo" style="margin:0"><span class="l1" style="font-size:clamp(22px,7vw,40px)">Ajeita a areia</span></h2>
-
-      <div class="grupo">
-        <div class="rot">Modo</div>
-        <div class="opts" id="g-modo">
-          <button class="opt" data-v="cpu" aria-pressed="true">Contra o computador</button>
-          <button class="opt" data-v="2p" aria-pressed="false">2 jogadores<small>passa-e-joga</small></button>
+      <div class="escolha" id="escolha-nivel" hidden>
+        <div class="niveis" role="group" aria-label="Escolha o adversário">
+          <button class="nivel" data-v="turista">Turista<small>joga no chute</small></button>
+          <button class="nivel" data-v="banhista">Banhista<small>acerta às vezes</small></button>
+          <button class="nivel" data-v="rato">Rato de Praia<small>quase não erra</small></button>
         </div>
       </div>
-
-      <div class="grupo" id="grupo-nivel">
-        <div class="rot">Nível</div>
-        <div class="opts" id="g-nivel">
-          <button class="opt" data-v="turista" aria-pressed="false">Turista<small>joga no chute</small></button>
-          <button class="opt" data-v="banhista" aria-pressed="true">Banhista de Domingo<small>acerta às vezes</small></button>
-          <button class="opt" data-v="rato" aria-pressed="false">Rato de Praia<small>não erra nunca</small></button>
-        </div>
-      </div>
-
-      <div class="grupo">
-        <div class="rot">Variante</div>
-        <div class="opts" id="g-variante">
-          <button class="opt" data-v="livre" aria-pressed="true">Livre<small>quaisquer buracos da fileira</small></button>
-          <button class="opt" data-v="vizinhos" aria-pressed="false">Vizinhos<small>só em sequência</small></button>
-        </div>
-      </div>
-
-      <div class="grupo">
-        <div class="rot">Estilo</div>
-        <div class="opts" id="g-skin">
-          <button class="opt" data-v="praia" aria-pressed="true">Areia de Copacabana</button>
-          <button class="opt" data-v="papel" aria-pressed="false">Papel de Pão<small>caneta azul</small></button>
-        </div>
-      </div>
-
-      <div class="grupo">
-        <div class="rot">Som</div>
-        <div class="opts" id="g-som">
-          <button class="opt" data-k="sfx" aria-pressed="true">Efeitos</button>
-          <button class="opt" data-k="amb" aria-pressed="true">Ondas e gaivotas</button>
-          <button class="opt" data-k="mus" aria-pressed="false">Musiquinha</button>
-        </div>
-        <div class="rot" style="border:0;font-family:var(--font-body);font-style:italic;text-transform:none;letter-spacing:0;font-size:12px;opacity:.7;color:inherit">
-          No iPhone, se não sair som, desligue a chavinha de silencioso.
-        </div>
-      </div>
-
-      <div class="linha-btn" style="margin-top:4px">
-        <button class="btn creme pequeno" id="setup-voltar">Voltar</button>
-        <button class="btn" id="comecar">Começar</button>
+      <div class="links">
+        <button class="link" id="nivel-voltar" hidden>&larr; Voltar</button>
+        <button class="link" id="ir-regras">Como joga</button>
+        <button class="link" id="ir-ajustes">Ajustes</button>
       </div>
     </div>
   </section>
@@ -918,17 +918,40 @@ body.skin-papel .medalha .med-sombra{display:none}
 <div class="modal" id="modal-regras">
   <div class="modal-card painel">
     <h2>Como se joga</h2>
-    <p>Sete fileiras cavadas na areia: 1, 2, 3, 4, 5, 6 e 7 buracos. <b>28 buracos</b> no total.</p>
+    <p>Sete fileiras cavadas na areia, em escada: 7 buracos no topo, depois 6, 5… até 1. <b>28 buracos</b> no total.</p>
     <ul>
-      <li>Na sua vez, escolha <b>uma única fileira</b> e tape <b>quantos buracos quiser</b> dela (no mínimo um).</li>
-      <li>Na variante <b>Livre</b>, valem quaisquer buracos daquela fileira.</li>
-      <li>Na variante <b>Vizinhos</b>, só valem buracos <b>grudados em sequência</b> — e tapar no meio parte a fileira em duas.</li>
-      <li>Toque nos buracos para marcar e confirme na <b>pazinha TAPAR</b>.</li>
-      <li>Tocar num buraco de outra fileira limpa a marcação anterior.</li>
+      <li>Na sua vez, tape <b>quantos buracos quiser</b> (no mínimo um), desde que estejam <b>em linha reta</b>: na <b>horizontal</b> (uma fileira) ou na <b>vertical</b> (uma coluna).</li>
+      <li><b>Diagonal não vale.</b></li>
+      <li>Um buraco já tapado <b>bloqueia a linha</b>: a jogada para nele. Em <b>O O O X O</b> dá para tapar até o X, e o O depois dele fica sozinho.</li>
+      <li>Toque nos buracos para marcar (tocar no começo e no fim marca o trecho todo) e confirme na <b>pazinha TAPAR</b>.</li>
       <li><b>Quem tapar o último buraco do tabuleiro perde</b> — e leva um caldo.</li>
     </ul>
-    <p style="font-style:italic;opacity:.8">O "Rato de Praia" joga a estratégia perfeita: nim misère. Ele só erra se você o obrigar.</p>
+    <p style="font-style:italic;opacity:.8">O "Rato de Praia" calcula a partida até o fim assim que o tabuleiro esvazia um pouco. Ganhar dele é para quem conhece a praia.</p>
     <div class="linha-btn"><button class="btn" id="fechar-regras">Entendi</button></div>
+  </div>
+</div>
+
+<!-- ================= MODAL AJUSTES ================= -->
+<div class="modal" id="modal-ajustes">
+  <div class="modal-card painel">
+    <h2>Ajustes</h2>
+    <div class="grupo">
+      <div class="rot">Estilo</div>
+      <div class="opts" id="g-skin">
+        <button class="opt" data-v="praia" aria-pressed="true">Areia de Copacabana</button>
+        <button class="opt" data-v="papel" aria-pressed="false">Papel de Pão<small>caneta azul</small></button>
+      </div>
+    </div>
+    <div class="grupo">
+      <div class="rot">Som</div>
+      <div class="opts" id="g-som">
+        <button class="opt" data-k="sfx" aria-pressed="true">Efeitos</button>
+        <button class="opt" data-k="amb" aria-pressed="true">Ondas e gaivotas</button>
+        <button class="opt" data-k="mus" aria-pressed="false">Musiquinha</button>
+      </div>
+      <p class="nota">No iPhone, se não sair som, desligue a chavinha de silencioso.</p>
+    </div>
+    <div class="linha-btn"><button class="btn" id="fechar-ajustes">Pronto</button></div>
   </div>
 </div>
 
@@ -936,13 +959,13 @@ body.skin-papel .medalha .med-sombra{display:none}
 "use strict";
 /* ============================================================
    TAPA BURACO
-   Jogo de areia carioca — Nim misère (quem tapa o último, perde)
+   Jogo de areia carioca — tapa em linha reta, quem tapa o último perde
    ============================================================ */
 
 /* ---------------- persistência ---------------- */
 const CHAVE = "tapaburaco.v1";
 const cfgPadrao = {
-  modo:"cpu", nivel:"banhista", variante:"livre", skin:"praia",
+  modo:"cpu", nivel:"banhista", skin:"praia",
   sfx:true, amb:true, mus:false,
   placar:[0,0], starter:0
 };
@@ -951,154 +974,199 @@ try{
   const bruto = localStorage.getItem(CHAVE);
   if(bruto) CFG = Object.assign(CFG, JSON.parse(bruto));
 }catch(e){ /* modo privativo: segue só em memória */ }
+delete CFG.variante;   // as variantes Livre/Vizinhos saíram com a regra da linha reta
 function salvar(){
   try{ localStorage.setItem(CHAVE, JSON.stringify(CFG)); }catch(e){}
 }
 
 /* ============================================================
    1. MOTOR DO JOGO
+   Escada invertida alinhada à esquerda: a fileira do topo tem 7 buracos,
+   a de baixo tem 1. O buraco (r,c) existe se c < 7-r, então as colunas
+   também têm 7, 6 … 1 buracos. O tabuleiro inteiro é UM inteiro de 28 bits
+   (bit ligado = buraco ABERTO); o buraco (r,c) é o bit OFF[r]+c.
+   Lance = trecho contíguo de buracos abertos numa fileira (horizontal) ou
+   numa coluna (vertical). Diagonal não existe e buraco tapado corta a linha.
+   Quem tapa o último buraco perde (misère).
+   criaMotor() é autocontida: roda igual na página e no Web Worker.
    ============================================================ */
-const NFILEIRAS = 7;
+function criaMotor(){
+  "use strict";
+  const N=7;
+  const OFF=[]; let total=0;
+  for(let r=0;r<N;r++){ OFF.push(total); total+=N-r; }
+  const TOTAL=total;                         // 28
+  const CHEIO=(2**TOTAL-1)>>>0;
+  const idx=(r,c)=>OFF[r]+c;
+  const CEL=[];
+  for(let r=0;r<N;r++) for(let c=0;c<N-r;c++) CEL.push({r,c});
 
-/** tabuleiro: array de arrays de boolean — true = buraco ABERTO */
-function novoTabuleiro(){
-  const t = [];
-  for(let r=0;r<NFILEIRAS;r++) t.push(new Array(r+1).fill(true));
-  return t;
-}
-function totalAbertos(t){
-  let n=0; for(const f of t) for(const b of f) if(b) n++;
-  return n;
-}
-/** Segmentos contíguos de buracos abertos de uma fileira. */
-function segmentos(fileira){
-  const out=[]; let c=0;
-  for(const aberto of fileira){ if(aberto) c++; else { if(c) out.push(c); c=0; } }
-  if(c) out.push(c);
-  return out;
-}
-/**
- * Estado canônico para o solver.
- *  - livre    : multiconjunto da QUANTIDADE de abertos por fileira (Nim puro).
- *  - vizinhos : multiconjunto dos COMPRIMENTOS dos segmentos (jogo octal .777).
- */
-function pecas(t, variante){
-  const p=[];
-  for(const f of t){
-    if(variante==="vizinhos"){ for(const s of segmentos(f)) p.push(s); }
-    else { const c=f.reduce((a,b)=>a+(b?1:0),0); if(c) p.push(c); }
-  }
-  return p;
-}
-
-/* ---------------- solver misère exato ----------------
-   win(P) = o jogador da vez VENCE a partir de P.
-   Quem tapa o último buraco perde → um lance que zera o
-   tabuleiro é derrota imediata de quem o faz.
-   Espaço de estados minúsculo (partições com partes ≤ 7,
-   soma ≤ 28), memoizado por variante. Nada de heurística.  */
-const memo = { livre:new Map(), vizinhos:new Map() };
-
-function chave(p){ return p.slice().sort((a,b)=>a-b).join(","); }
-
-function sucessores(p, variante){
-  const out=[];
-  for(let i=0;i<p.length;i++){
-    const resto = p.slice(0,i).concat(p.slice(i+1));
-    const n = p[i];
-    if(variante==="vizinhos"){
-      for(let ini=0; ini<n; ini++){
-        for(let len=1; len<=n-ini; len++){
-          const esq=ini, dir=n-ini-len;
-          const novo=resto.slice();
-          if(esq) novo.push(esq);
-          if(dir) novo.push(dir);
-          out.push(novo);
-        }
-      }
-    }else{
-      for(let v=0; v<n; v++){
-        const novo=resto.slice();
-        if(v) novo.push(v);
-        out.push(novo);
-      }
+  /* Linhas: fileiras de cima para baixo, depois colunas da esquerda para a direita.
+     Os trechos (140) saem nessa ordem, sem repetir o buraco solto; o índice do
+     trecho é contrato do livro de abertura e do porte Unity — não reordenar. */
+  const LINHAS=[];
+  for(let r=0;r<N;r++){ const l=[]; for(let c=0;c<N-r;c++) l.push(idx(r,c)); LINHAS.push(l); }
+  for(let c=0;c<N;c++){ const l=[]; for(let r=0;r<N-c;r++) l.push(idx(r,c)); if(l.length>1) LINHAS.push(l); }
+  const SEG=[], SEG_CEL=[], visto=new Set();
+  for(const l of LINHAS) for(let a=0;a<l.length;a++){
+    let m=0; const cel=[];
+    for(let b=a;b<l.length;b++){
+      m=(m|(1<<l[b]))>>>0; cel.push(l[b]);
+      if(!visto.has(m)){ visto.add(m); SEG.push(m); SEG_CEL.push(cel.slice()); }
     }
   }
-  return out;
-}
+  const NSEG=SEG.length;
+  const SEG_DE=new Map(SEG.map((m,i)=>[m,i]));
+  const pop=x=>{x=x-((x>>>1)&0x55555555);x=(x&0x33333333)+((x>>>2)&0x33333333);return(((x+(x>>>4))&0x0F0F0F0F)*0x01010101)>>>24;};
+  /* a busca tenta os trechos maiores primeiro */
+  const ORDEM=Int32Array.from(SEG.map((_,i)=>i).sort((x,y)=>pop(SEG[y])-pop(SEG[x])||x-y));
 
-function venceDaqui(p, variante){
-  const m = memo[variante];
-  const k = chave(p);
-  const hit = m.get(k);
-  if(hit !== undefined) return hit;
-  let res = false;
-  for(const s of sucessores(p, variante)){
-    if(s.length === 0) continue;           // zerar = tapar o último = perder
-    if(!venceDaqui(s, variante)){ res = true; break; }
+  /* A escada é simétrica pela diagonal (fileira r ↔ coluna r): posição e espelho
+     dividem a mesma entrada da tabela. Espelho por 4 tabelas de 8 bits. */
+  const TR=new Int32Array(TOTAL);
+  for(const {r,c} of CEL) TR[idx(r,c)]=idx(c,r);
+  const TRB=[0,1,2,3].map(b=>{const t=new Int32Array(256);for(let v=0;v<256;v++){let o=0;for(let i=0;i<8;i++){const bit=b*8+i;if(bit<TOTAL&&(v>>i)&1)o|=1<<TR[bit];}t[v]=o;}return t;});
+  const espelho=m=>(TRB[0][m&255]|TRB[1][(m>>>8)&255]|TRB[2][(m>>>16)&255]|TRB[3][(m>>>24)&255])>>>0;
+
+  function legais(m){ const out=[]; for(let i=0;i<NSEG;i++) if((SEG[i]&m)===SEG[i]) out.push(i); return out; }
+  const sorteia=a=>a[(Math.random()*a.length)|0];
+
+  /* ---------- solver misère exato, com tempo-limite ----------
+     Tabela de transposição em endereçamento aberto: chave+1 (Int32) e
+     valor 1 = perde / 2 = vence. 4 Mi de vagas (~20 MB), alocada só quando
+     a máquina pensa pela primeira vez; persiste entre lances e partidas. */
+  const BITS=22, TAM=1<<BITS, MASC=TAM-1;
+  let chaves=null, valores=null, usados=0;
+  function le(k){ let h=Math.imul(k,0x9E3779B1)>>>(32-BITS); for(;;){ const x=chaves[h]; if(x===0) return 0; if(x===k+1) return valores[h]; h=(h+1)&MASC; } }
+  function grava(k,v){
+    if(usados>TAM*0.7){ chaves.fill(0); usados=0; }
+    let h=Math.imul(k,0x9E3779B1)>>>(32-BITS);
+    for(;;){ const x=chaves[h]; if(x===0){ chaves[h]=k+1; valores[h]=v; usados++; return; } if(x===k+1){ valores[h]=v; return; } h=(h+1)&MASC; }
   }
-  m.set(k, res);
-  return res;
-}
+  let nos=0, prazo=Infinity;
+  const ESGOTOU={};
+  /** O jogador da vez VENCE com o tabuleiro m? m=0: o outro tapou o último, vence quem está na vez. */
+  function vence(m){
+    if(m===0) return true;
+    const t=espelho(m), k=m<t?m:t;
+    const h=le(k); if(h) return h===2;
+    if((++nos&4095)===0 && performance.now()>prazo) throw ESGOTOU;
+    let v=false;
+    for(let j=0;j<NSEG;j++){ const s=SEG[ORDEM[j]]; if((s&m)===s && !vence((m^s)>>>0)){ v=true; break; } }
+    grava(k, v?2:1);
+    return v;
+  }
+  function preparaBusca(ms){
+    if(!chaves){ chaves=new Int32Array(TAM); valores=new Uint8Array(TAM); }
+    nos=0; prazo=performance.now()+ms;
+  }
+  /** true/false; null se o tempo acabou antes da prova. */
+  function venceDaqui(m, ms=Infinity){
+    preparaBusca(ms);
+    try{ return vence(m>>>0); }catch(e){ if(e===ESGOTOU) return null; throw e; }
+  }
+  /** Índice de um lance que deixa o adversário perdido; -1 se não existe; null se o tempo acabou. */
+  function lanceVencedor(m, ms=Infinity){
+    m>>>=0; preparaBusca(ms);
+    const cand=legais(m);
+    for(let i=cand.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [cand[i],cand[j]]=[cand[j],cand[i]]; }
+    try{
+      for(const i of cand) if(!vence((m^SEG[i])>>>0)) return i;
+      return -1;
+    }catch(e){ if(e===ESGOTOU) return null; throw e; }
+  }
 
-/* ---------------- lances concretos ---------------- */
-/** Todos os lances legais como {fileira, buracos:[índices]}. */
-function lancesLegais(t, variante){
-  const out=[];
-  for(let r=0;r<t.length;r++){
-    const f=t[r];
-    const abertos=[];
-    for(let i=0;i<f.length;i++) if(f[i]) abertos.push(i);
-    if(!abertos.length) continue;
-    if(variante==="vizinhos"){
-      for(let a=0;a<f.length;a++){
-        if(!f[a]) continue;
-        const seq=[];
-        for(let b=a;b<f.length && f[b];b++){
-          seq.push(b);
-          out.push({fileira:r, buracos:seq.slice()});
-        }
-      }
-    }else{
-      // Em "livre" só a QUANTIDADE importa; sorteamos quais buracos por sabor.
-      for(let k=1;k<=abertos.length;k++){
-        const emb = abertos.slice();
-        for(let i=emb.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [emb[i],emb[j]]=[emb[j],emb[i]]; }
-        out.push({fileira:r, buracos:emb.slice(0,k).sort((x,y)=>x-y)});
-      }
+  /* ---------- livro de abertura ----------
+     Com 24+ buracos abertos a prova pode levar minutos; as duas primeiras
+     decisões da máquina vêm pré-calculadas (busca exaustiva offline).
+     LIVRO_RESP[h] = resposta vencedora ao primeiro lance h do adversário;
+     -1 = não há (o lance h vence) ou a prova passou de 20 s. */
+  const LIVRO_ABRE=5;
+  const LIVRO_RESP=[
+    11,16,20,38,53,-1,54,-1,60,52,57,42,41,-1,32,33,38,53,33,109,
+    101,57,-1,3,123,4,-1,-1,-1,9,52,23,14,15,-1,131,137,4,3,89,
+    94,12,4,57,8,62,-1,2,-1,-1,24,101,16,4,6,33,17,10,-1,37,
+    38,-1,87,-1,109,32,38,21,126,-1,53,-1,-1,10,-1,-1,2,-1,92,-1,
+    87,45,-1,-1,97,100,113,123,-1,39,128,122,126,116,115,108,109,113,123,33,
+    21,126,86,53,-1,91,122,102,95,96,66,76,87,86,12,94,87,90,129,85,
+    103,21,97,87,109,98,92,112,113,4,108,113,101,-1,123,-1,-1,85,10,118
+  ];
+  function doLivro(m){
+    if(m===CHEIO) return LIVRO_ABRE;
+    const h=SEG_DE.get((CHEIO^m)>>>0);
+    return h!==undefined && LIVRO_RESP[h]>=0 ? LIVRO_RESP[h] : null;
+  }
+
+  /** Sem vitória conhecida: nunca tapa o último buraco de graça. */
+  function semEntregar(m, curto){
+    const L=legais(m);
+    const ok=L.filter(i=>SEG[i]!==m);
+    if(!ok.length) return sorteia(L);
+    if(!curto) return sorteia(ok);
+    // perdido (ou sem tempo de provar): tapa o mínimo e deixa o tabuleiro complicado
+    const min=Math.min(...ok.map(i=>pop(SEG[i])));
+    return sorteia(ok.filter(i=>pop(SEG[i])===min));
+  }
+  /** Escolha da máquina (índice do trecho). */
+  function lanceDaMaquina(m, nivel, ms){
+    m>>>=0;
+    if(nivel==="turista") return sorteia(legais(m));
+    if(nivel==="banhista" && Math.random()<0.5) return semEntregar(m,false);
+    const livro=doLivro(m);
+    if(livro!==null) return livro;
+    const v=lanceVencedor(m, ms);
+    return v!==null && v>=0 ? v : semEntregar(m, nivel==="rato");
+  }
+
+  return { N, TOTAL, CHEIO, OFF, idx, CEL, SEG, SEG_CEL, NSEG, pop, espelho,
+    legais, venceDaqui, lanceVencedor, lanceDaMaquina,
+    trechoDe:m=>SEG_DE.get(m>>>0) };
+}
+const MOTOR=criaMotor();
+const NFILEIRAS=MOTOR.N;
+const tamanhoFileira=r=>NFILEIRAS-r;
+const aberto=(t,r,c)=>((t>>>MOTOR.idx(r,c))&1)===1;
+
+/* ---------- cérebro da máquina num Web Worker ----------
+   A busca pode levar alguns segundos no começo da partida: fora da thread
+   principal a areia continua animada. Depois de jogar, o worker segue
+   "pensando" a posição que entregou (aquece a tabela para o próximo lance).
+   Sem Worker (navegador antigo, file:// restrito) pensa aqui mesmo. */
+const PRAZO_MS=2500;
+const Cerebro=(()=>{
+  let w=null, n=0;
+  const pendentes=new Map();
+  const local=d=>MOTOR.lanceDaMaquina(d.m,d.nivel,d.ms);
+  function largaWorker(){
+    w=null;
+    for(const [id,p] of pendentes){ pendentes.delete(id); p.res(local(p.d)); }
+  }
+  try{
+    const fonte=`"use strict";
+const M=(${criaMotor.toString()})();
+let alvo=-1;
+function pondera(){ if(alvo<0) return; if(M.venceDaqui(alvo,120)===null) setTimeout(pondera,0); else alvo=-1; }
+onmessage=e=>{
+  const d=e.data; alvo=-1;
+  const lance=M.lanceDaMaquina(d.m,d.nivel,d.ms);
+  postMessage({id:d.id,lance});
+  const resto=(d.m^M.SEG[lance])>>>0;
+  if(d.nivel!=="turista" && resto){ alvo=resto; setTimeout(pondera,0); }
+};`;
+    w=new Worker(URL.createObjectURL(new Blob([fonte],{type:"text/javascript"})));
+    w.onmessage=e=>{ const p=pendentes.get(e.data.id); if(p){ pendentes.delete(e.data.id); p.res(e.data.lance); } };
+    w.onerror=largaWorker;
+  }catch(e){ w=null; }
+  return {
+    pensa(m,nivel){
+      const d={id:++n, m:m>>>0, nivel, ms:PRAZO_MS};
+      return new Promise(res=>{
+        if(w){ pendentes.set(d.id,{res,d}); w.postMessage(d); }
+        else setTimeout(()=>res(local(d)),0);
+      });
     }
-  }
-  return out;
-}
-/** Estado canônico resultante de aplicar um lance. */
-function pecasApos(t, lance, variante){
-  const copia = t.map(f=>f.slice());
-  for(const i of lance.buracos) copia[lance.fileira][i]=false;
-  return pecas(copia, variante);
-}
-
-/** Escolha da máquina. */
-function lanceDaMaquina(t, variante, nivel){
-  const lances = lancesLegais(t, variante);
-  const sorteia = a => a[(Math.random()*a.length)|0];
-  if(nivel==="turista") return sorteia(lances);
-
-  const bons = lances.filter(l=>{
-    const s = pecasApos(t,l,variante);
-    return s.length>0 && !venceDaqui(s, variante);
-  });
-
-  if(nivel==="rato") return bons.length ? sorteia(bons) : evitaSuicidio(lances,t,variante);
-  // banhista: metade das vezes acerta
-  if(bons.length && Math.random()<0.5) return sorteia(bons);
-  return evitaSuicidio(lances,t,variante);
-}
-/** Sem lance vencedor: pelo menos não entrega o último buraco de graça. */
-function evitaSuicidio(lances,t,variante){
-  const naoZeram = lances.filter(l=>pecasApos(t,l,variante).length>0);
-  const pool = naoZeram.length?naoZeram:lances;
-  return pool[(Math.random()*pool.length)|0];
-}
+  };
+})();
 
 /* ============================================================
    2. ÁUDIO (100% Web Audio, zero arquivos)
@@ -1477,25 +1545,26 @@ function svgOndaCaldo(){
    ============================================================ */
 const $ = s=>document.querySelector(s);
 const el = {
-  telas:{titulo:$("#tela-titulo"), setup:$("#tela-setup"), jogo:$("#tela-jogo"), fim:$("#tela-fim")},
+  telas:{titulo:$("#tela-titulo"), jogo:$("#tela-jogo"), fim:$("#tela-fim")},
   tab:$("#tabuleiro"), fx:$("#fx"), caixa:$("#areia-box"),
   dica:$("#dica"), tapar:$("#btn-tapar"), desfazer:$("#btn-desfazer"),
   jog1:$("#jog1"), jog2:$("#jog2"), gs1:$("#gs1"), gs2:$("#gs2"),
   pt1:$("#pt1"), pt2:$("#pt2"),
   palco:$("#palco"), fimTitulo:$("#fim-titulo"), fimSub:$("#fim-sub"), placarFim:$("#placar-fim"),
-  modal:$("#modal-regras"), bSom:$("#b-som")
+  modal:$("#modal-regras"), ajustes:$("#modal-ajustes"), bSom:$("#b-som")
 };
 const NOMES_NIVEL = {turista:"TURISTA", banhista:"BANHISTA", rato:"RATO DE PRAIA"};
 const NOMES_NIVEL_LONGO = {turista:"Turista", banhista:"Banhista de Domingo", rato:"Rato de Praia"};
 
 let J = {
-  tab:novoTabuleiro(),
+  tab:MOTOR.CHEIO,  // 28 bits, bit ligado = buraco aberto
   vez:0,            // 0 = jogador 1, 1 = jogador 2 (ou máquina)
-  sel:new Set(),
-  selFileira:-1,
+  sel:[],           // índices dos buracos marcados, em ordem ao longo da linha
+  aviso:"",         // recado curto na dica até a próxima marcação
   ocupado:false,
   acabou:false,
-  celulas:[]        // matriz de elementos
+  partida:0,        // muda a cada partida/saída: descarta lance de máquina atrasado
+  celulas:[]        // matriz de elementos [fileira][coluna]
 };
 
 function mostraTela(nome){
@@ -1517,22 +1586,22 @@ function montaTabuleiro(){
     fila.setAttribute("role","row");
     const est=document.createElement("div");
     est.className="estaca";
-    est.innerHTML = svgEstaca()+`<span>${r+1}</span>`;
+    est.innerHTML = svgEstaca()+`<span>${tamanhoFileira(r)}</span>`;
     fila.appendChild(est);
     const linha=[];
-    for(let i=0;i<=r;i++){
+    for(let c=0;c<tamanhoFileira(r);c++){
       const b=document.createElement("button");
       b.className="buraco";
       b.type="button";
-      b.dataset.r=r; b.dataset.i=i;
+      b.dataset.r=r; b.dataset.c=c;
       b.setAttribute("role","gridcell");
-      b.setAttribute("aria-label",`Fileira ${r+1}, buraco ${i+1}`);
+      b.setAttribute("aria-label",`Fileira de ${tamanhoFileira(r)}, buraco ${c+1}`);
       // rabisco: raios irregulares para a skin Papel de Pão
       const rr=()=> (44+Math.random()*14).toFixed(0)+"%";
       b.style.setProperty("--r1",rr()); b.style.setProperty("--r2",rr());
       b.style.setProperty("--r3",rr()); b.style.setProperty("--r4",rr());
       b.innerHTML = `<span class="cava"></span><span class="monte"></span>`;
-      b.addEventListener("click",()=>clicaBuraco(r,i));
+      b.addEventListener("click",()=>clicaBuraco(r,c));
       fila.appendChild(b);
       linha.push(b);
     }
@@ -1559,23 +1628,24 @@ window.addEventListener("orientationchange", ()=>setTimeout(ajustaEscala,180));
 
 /* ---------------- render ---------------- */
 function render(){
-  const ultimoRestante = totalAbertos(J.tab)===1;
+  const ultimoRestante = MOTOR.pop(J.tab)===1;
+  const humano = !J.ocupado && !J.acabou && !ehMaquina(J.vez);
   for(let r=0;r<NFILEIRAS;r++){
-    for(let i=0;i<=r;i++){
-      const b=J.celulas[r][i];
-      const aberto=J.tab[r][i];
-      b.classList.toggle("tapado", !aberto);
-      b.classList.toggle("sel", J.selFileira===r && J.sel.has(i));
-      b.classList.toggle("perigo", aberto && ultimoRestante);
-      const humano = !J.ocupado && !J.acabou && !ehMaquina(J.vez);
-      b.classList.toggle("jogavel", aberto && humano);
-      b.disabled = !aberto || !humano;
-      b.setAttribute("aria-pressed", String(J.selFileira===r && J.sel.has(i)));
+    for(let c=0;c<tamanhoFileira(r);c++){
+      const b=J.celulas[r][c];
+      const ab=aberto(J.tab,r,c);
+      const marcado=J.sel.includes(MOTOR.idx(r,c));
+      b.classList.toggle("tapado", !ab);
+      b.classList.toggle("sel", marcado);
+      b.classList.toggle("perigo", ab && ultimoRestante);
+      b.classList.toggle("jogavel", ab && humano);
+      b.disabled = !ab || !humano;
+      b.setAttribute("aria-pressed", String(marcado));
     }
   }
   el.jog1.classList.toggle("ativo", J.vez===0 && !J.acabou);
   el.jog2.classList.toggle("ativo", J.vez===1 && !J.acabou);
-  const n=J.sel.size;
+  const n=J.sel.length;
   el.tapar.disabled = n===0 || J.ocupado || J.acabou || ehMaquina(J.vez);
   el.desfazer.disabled = n===0 || J.ocupado;
   atualizaDica();
@@ -1589,70 +1659,80 @@ function atualizaDica(){
   }
   if(J.ocupado){ el.dica.textContent = "Fshhh…"; return; }
   if(ehMaquina(J.vez)){ el.dica.innerHTML = `Vez do <b>${NOMES_NIVEL[CFG.nivel]}</b>`; return; }
-  const n=J.sel.size;
+  if(J.aviso){ el.dica.innerHTML = J.aviso; return; }
+  const n=J.sel.length;
   const quem = CFG.modo==="cpu" ? "Sua vez" : `Vez do <b>${nomeJogador(J.vez)}</b>`;
   if(n===0){
-    const restam = totalAbertos(J.tab);
-    el.dica.innerHTML = restam===1
+    el.dica.innerHTML = MOTOR.pop(J.tab)===1
       ? `${quem} — <b>só sobrou um!</b>`
-      : `${quem}: escolha buracos de <b>uma fileira</b>`;
+      : `${quem}: tape buracos <b>em linha reta</b>`;
+  }else if(n===1){
+    el.dica.innerHTML = `<b>1</b> buraco marcado — siga na horizontal ou na vertical`;
   }else{
-    el.dica.innerHTML = `Fileira <b>${J.selFileira+1}</b> — <b>${n}</b> buraco${n>1?"s":""} marcado${n>1?"s":""}`;
+    const deitada = MOTOR.CEL[J.sel[0]].r===MOTOR.CEL[J.sel[1]].r;
+    el.dica.innerHTML = `<b>${n}</b> buracos na <b>${deitada?"horizontal":"vertical"}</b>`;
   }
 }
 
 /* ---------------- interação ---------------- */
-function clicaBuraco(r,i){
+/** Buracos da linha reta entre a e b (inclusive), ou null se não dividem fileira nem coluna.
+   Na fileira o índice cresce com a coluna e na coluna cresce com a fileira,
+   então a lista sai sempre em ordem. */
+function linhaEntre(a,b){
+  const A=MOTOR.CEL[a], B=MOTOR.CEL[b], out=[];
+  if(A.r===B.r){ for(let c=Math.min(A.c,B.c);c<=Math.max(A.c,B.c);c++) out.push(MOTOR.idx(A.r,c)); return out; }
+  if(A.c===B.c){ for(let r=Math.min(A.r,B.r);r<=Math.max(A.r,B.r);r++) out.push(MOTOR.idx(r,A.c)); return out; }
+  return null;
+}
+function nega(r,c){
+  const b=J.celulas[r][c];
+  b.classList.remove("nao"); void b.offsetWidth; b.classList.add("nao");
+}
+function clicaBuraco(r,c){
   if(J.ocupado || J.acabou || ehMaquina(J.vez)) return;
-  if(!J.tab[r][i]) return;
+  if(!aberto(J.tab,r,c)) return;
   Som.garante();
-  if(J.selFileira!==r){          // outra fileira limpa a marcação
-    J.selFileira=r; J.sel=new Set([i]);
+  const k=MOTOR.idx(r,c);
+  J.aviso="";
+  if(!J.sel.length){ J.sel=[k]; Som.toque(true); render(); return; }
+
+  const pos=J.sel.indexOf(k);
+  if(pos>=0){
+    // desmarcar: na ponta encurta; no meio fica o pedaço maior (a linha não pode ter buraco)
+    if(pos===0 || pos===J.sel.length-1) J.sel.splice(pos,1);
+    else { const esq=J.sel.slice(0,pos), dir=J.sel.slice(pos+1); J.sel = esq.length>=dir.length ? esq : dir; }
     Som.toque(false); render(); return;
   }
-  if(J.sel.has(i)){
-    J.sel.delete(i);
-    if(CFG.variante==="vizinhos" && J.sel.size) J.sel = maiorBlocoContiguo(J.sel, i);
-    if(!J.sel.size) J.selFileira=-1;
-    Som.toque(false); render(); return;
+
+  // estender: a nova linha vai da ponta mais distante até o buraco tocado
+  const lin=linhaEntre(Math.min(J.sel[0],k), Math.max(J.sel[J.sel.length-1],k));
+  const alinhado = lin!==null && lin.includes(k) && J.sel.every(x=>lin.includes(x));
+  if(!alinhado){
+    const A=MOTOR.CEL[J.sel[0]];
+    J.aviso = J.sel.length===1 && Math.abs(A.r-r)===Math.abs(A.c-c)
+      ? `<b>Diagonal não vale</b> — só na horizontal ou na vertical`
+      : `Recomeçou aqui: só vale <b>uma linha reta</b>`;
+    J.sel=[k]; Som.toque(false); render(); return;
   }
-  if(CFG.variante==="vizinhos"){
-    const arr=[...J.sel].sort((a,b)=>a-b);
-    const min=arr[0], max=arr[arr.length-1];
-    const encosta = (i===min-1 || i===max+1);
-    if(!encosta || !J.tab[r][i]){
-      // não encosta: recomeça a seleção nesse buraco
-      const nega=J.celulas[r][i];
-      nega.classList.remove("nao"); void nega.offsetWidth; nega.classList.add("nao");
-      Som.erro();
-      el.dica.innerHTML = `Nessa variante só valem buracos <b>vizinhos</b>`;
-      J.sel=new Set([i]); render(); return;
-    }
+  const bloqueio=lin.find(x=>!((J.tab>>>x)&1));
+  if(bloqueio!==undefined){
+    nega(r,c); Som.erro();
+    J.aviso = `Tem buraco <b>tapado no caminho</b> — a linha para nele`;
+    J.sel=[k]; render(); return;
   }
-  J.sel.add(i);
+  J.sel=lin;
   Som.toque(true);
   render();
-}
-/** Após remover o item `i`, mantém o maior bloco contíguo da seleção. */
-function maiorBlocoContiguo(set, removido){
-  const arr=[...set].sort((a,b)=>a-b);
-  let melhor=[], atual=[];
-  for(let k=0;k<arr.length;k++){
-    if(!atual.length || arr[k]===atual[atual.length-1]+1) atual.push(arr[k]);
-    else { if(atual.length>melhor.length) melhor=atual; atual=[arr[k]]; }
-  }
-  if(atual.length>melhor.length) melhor=atual;
-  return new Set(melhor);
 }
 
 el.desfazer.addEventListener("click",()=>{
   if(J.ocupado) return;
-  J.sel.clear(); J.selFileira=-1; Som.toque(false); render();
+  J.sel=[]; J.aviso=""; Som.toque(false); render();
 });
 el.tapar.addEventListener("click",()=>{
   if(el.tapar.disabled) return;
-  const r=J.selFileira, buracos=[...J.sel].sort((a,b)=>a-b);
-  executaLance({fileira:r, buracos});
+  const m=J.sel.reduce((a,x)=>(a|(1<<x))>>>0,0);
+  executaLance(MOTOR.trechoDe(m));   // a seleção é sempre um trecho de linha válido
 });
 
 /* ---------------- animação de tapar ---------------- */
@@ -1706,24 +1786,29 @@ function tremeTela(){
   setTimeout(()=>a.classList.remove("tremor"),140);
 }
 
-function executaLance(lance){
-  J.ocupado=true; J.sel.clear(); J.selFileira=-1;
+function executaLance(trecho){
+  J.ocupado=true; J.sel=[]; J.aviso="";
   render();
-  const lista=lance.buracos.slice();
-  lista.forEach((i,k)=>{
+  const partida=J.partida;
+  const lista=MOTOR.SEG_CEL[trecho];
+  lista.forEach((x,k)=>{
+    const {r,c}=MOTOR.CEL[x];
     setTimeout(()=>{
-      efeitoTapar(lance.fileira,i);
+      if(partida!==J.partida) return;
+      efeitoTapar(r,c);
       Som.areia(1 - k*0.06);
       setTimeout(()=>{
+        if(partida!==J.partida) return;
         // impacto: flash primeiro, depois 60 ms de hit-stop antes de o monte aparecer
-        flashImpacto(lance.fileira,i);
+        flashImpacto(r,c);
         setTimeout(()=>{
-          J.tab[lance.fileira][i]=false;
-          const b=J.celulas[lance.fileira][i];
+          if(partida!==J.partida) return;
+          J.tab=(J.tab & ~(1<<x))>>>0;
+          const b=J.celulas[r][c];
           b.classList.add("tapado","recem");
           setTimeout(()=>b.classList.remove("recem"),420);
           render();
-          if(totalAbertos(J.tab)===0) tremeTela();   // só o buraco da derrota treme
+          if(J.tab===0) tremeTela();   // só o buraco da derrota treme
         },60);
       },150);
     }, k*115);
@@ -1732,8 +1817,9 @@ function executaLance(lance){
      cabe dentro da folga do rabo, a partida não fica mais lenta. */
   const tempo = lista.length*115 + 430;
   setTimeout(()=>{
+    if(partida!==J.partida) return;
     J.ocupado=false;
-    if(totalAbertos(J.tab)===0){
+    if(J.tab===0){
       // quem acabou de jogar tapou o último → perdeu
       terminaPartida(1-J.vez);
       return;
@@ -1746,13 +1832,12 @@ function executaLance(lance){
 
 function jogadaDaMaquina(){
   J.ocupado=true; render();
-  const t0=performance.now();
-  setTimeout(()=>{
-    const lance = lanceDaMaquina(J.tab, CFG.variante, CFG.nivel);
-    const gasto = performance.now()-t0;
-    const espera = Math.max(0, 420 - gasto);
-    setTimeout(()=>{ J.ocupado=false; executaLance(lance); }, espera);
-  }, 260);
+  const t0=performance.now(), partida=J.partida;
+  Cerebro.pensa(J.tab, CFG.nivel).then(trecho=>{
+    if(partida!==J.partida) return;   // saiu da partida enquanto a máquina pensava
+    const espera = Math.max(0, 680 - (performance.now()-t0));
+    setTimeout(()=>{ if(partida!==J.partida) return; J.ocupado=false; executaLance(trecho); }, espera);
+  });
 }
 
 /* ---------------- fim de partida ---------------- */
@@ -1826,8 +1911,9 @@ function telaFim(vencedor){
 
 /* ---------------- nova partida ---------------- */
 function novaPartida(){
-  J.tab=novoTabuleiro();
-  J.sel=new Set(); J.selFileira=-1;
+  J.partida++;
+  J.tab=MOTOR.CHEIO;
+  J.sel=[]; J.aviso="";
   J.ocupado=false; J.acabou=false;
   J.vez=CFG.starter;
   montaTabuleiro();
@@ -1836,7 +1922,7 @@ function novaPartida(){
   el.gs2.innerHTML=svgGuardaSol(COR_J2,0,3).replace("<svg ","<svg width=\"30\" ");
   mostraTela("jogo");
   requestAnimationFrame(()=>{ ajustaEscala(); render(); });
-  if(ehMaquina(J.vez)) setTimeout(jogadaDaMaquina,650);
+  if(ehMaquina(J.vez)){ const p=J.partida; setTimeout(()=>{ if(p===J.partida) jogadaDaMaquina(); },650); }
 }
 
 /* ============================================================
@@ -1852,12 +1938,6 @@ function ligaGrupo(id, chave, aoMudar){
   });
   [...g.querySelectorAll(".opt")].forEach(o=>o.setAttribute("aria-pressed", String(o.dataset.v===CFG[chave])));
 }
-ligaGrupo("g-modo","modo",v=>{
-  document.getElementById("grupo-nivel").style.display = v==="cpu" ? "" : "none";
-  CFG.placar=[0,0]; salvar();
-});
-ligaGrupo("g-nivel","nivel");
-ligaGrupo("g-variante","variante");
 ligaGrupo("g-skin","skin",aplicaSkin);
 
 const gSom=document.getElementById("g-som");
@@ -1884,14 +1964,47 @@ function aplicaSkin(v){
   document.body.classList.toggle("skin-praia", v!=="papel");
 }
 
-$("#ir-setup").addEventListener("click",()=>{ Som.garante(); Som.aplicaMix(); Som.toque(true); mostraTela("setup"); });
-$("#setup-voltar").addEventListener("click",()=>mostraTela("titulo"));
-$("#comecar").addEventListener("click",()=>{ Som.garante(); Som.aplicaMix(); novaPartida(); });
+/* ---------------- tela inicial: modo → (adversário) → partida ---------------- */
+const escolhaModo=$("#escolha-modo"), escolhaNivel=$("#escolha-nivel"), nivelVoltar=$("#nivel-voltar");
+function mostraEscolha(qual){
+  escolhaModo.hidden = qual!=="modo";
+  escolhaNivel.hidden = qual!=="nivel";
+  nivelVoltar.hidden = qual!=="nivel";
+  for(const b of escolhaNivel.querySelectorAll(".nivel")) b.classList.toggle("ultimo", b.dataset.v===CFG.nivel);
+}
+function comeca(modo, nivel){
+  // placar é contra UM adversário: trocar de modo ou de nível zera
+  if(modo!==CFG.modo || (modo==="cpu" && nivel!==CFG.nivel)) CFG.placar=[0,0];
+  CFG.modo=modo;
+  if(nivel) CFG.nivel=nivel;
+  salvar();
+  Som.garante(); Som.aplicaMix(); Som.toque(true);
+  novaPartida();
+}
+function irMenu(){
+  J.partida++;            // descarta lance de máquina ou animação em andamento
+  mostraEscolha("modo");
+  mostraTela("titulo");
+}
+$("#ir-cpu").addEventListener("click",()=>{
+  Som.garante(); Som.toque(true);
+  mostraEscolha("nivel");
+  escolhaNivel.querySelector(".nivel.ultimo")?.focus();
+});
+$("#ir-2p").addEventListener("click",()=>comeca("2p"));
+escolhaNivel.addEventListener("click",e=>{
+  const b=e.target.closest(".nivel"); if(b) comeca("cpu", b.dataset.v);
+});
+nivelVoltar.addEventListener("click",()=>{ Som.toque(false); mostraEscolha("modo"); $("#ir-cpu").focus(); });
+
+function fechaModais(){ el.modal.classList.remove("ativa"); el.ajustes.classList.remove("ativa"); }
 $("#ir-regras").addEventListener("click",()=>el.modal.classList.add("ativa"));
 $("#b-regras2").addEventListener("click",()=>el.modal.classList.add("ativa"));
-$("#fechar-regras").addEventListener("click",()=>el.modal.classList.remove("ativa"));
-el.modal.addEventListener("click",e=>{ if(e.target===el.modal) el.modal.classList.remove("ativa"); });
-$("#b-menu").addEventListener("click",()=>mostraTela("setup"));
+$("#fechar-regras").addEventListener("click",fechaModais);
+$("#ir-ajustes").addEventListener("click",()=>{ Som.garante(); el.ajustes.classList.add("ativa"); });
+$("#fechar-ajustes").addEventListener("click",fechaModais);
+for(const m of [el.modal, el.ajustes]) m.addEventListener("click",e=>{ if(e.target===m) fechaModais(); });
+$("#b-menu").addEventListener("click",irMenu);
 $("#b-skin").addEventListener("click",()=>{
   CFG.skin = CFG.skin==="papel" ? "praia" : "papel";
   aplicaSkin(CFG.skin); salvar();
@@ -1905,11 +2018,11 @@ el.bSom.addEventListener("click",()=>{
   salvar(); Som.garante(); Som.aplicaMix(); sincronizaSom();
 });
 $("#fim-denovo").addEventListener("click",()=>novaPartida());
-$("#fim-menu").addEventListener("click",()=>mostraTela("setup"));
+$("#fim-menu").addEventListener("click",irMenu);
 
 /* teclado: útil no desktop */
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"){ el.modal.classList.remove("ativa"); return; }
+  if(e.key==="Escape"){ fechaModais(); return; }
   if(!el.telas.jogo.classList.contains("ativa")) return;
   if(e.key==="Enter"||e.key===" "){ if(!el.tapar.disabled){ e.preventDefault(); el.tapar.click(); } }
   if(e.key==="Backspace"){ e.preventDefault(); el.desfazer.click(); }
@@ -1919,7 +2032,7 @@ document.addEventListener("keydown",e=>{
    6. ARRANQUE
    ============================================================ */
 aplicaSkin(CFG.skin);
-document.getElementById("grupo-nivel").style.display = CFG.modo==="cpu" ? "" : "none";
+mostraEscolha("modo");
 sincronizaSom();
 atualizaPlacar();
 el.gs1.innerHTML=svgGuardaSol(COR_J1,0,2.6).replace("<svg ","<svg width=\"30\" ");
@@ -1938,11 +2051,7 @@ GESTOS.forEach(ev=>window.addEventListener(ev,destravaAudio,true));
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && Som.ctx) Som.destrava(); });
 
 /* expõe o motor para verificação */
-window.TAPABURACO = {
-  novoTabuleiro, totalAbertos, pecas, segmentos,
-  venceDaqui, lancesLegais, pecasApos, lanceDaMaquina,
-  estado:()=>J, cfg:()=>CFG
-};
+window.TAPABURACO = { motor:MOTOR, estado:()=>J, cfg:()=>CFG };
 </script>
 </body>
 </html>

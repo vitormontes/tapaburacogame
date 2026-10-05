@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace TapaBuraco.Core
 {
@@ -8,15 +10,23 @@ namespace TapaBuraco.Core
     /// </summary>
     public sealed class GameSession
     {
-        private readonly MisereSolver _solver;
         private readonly BeachAi _ai;
+
+        /// <summary>Buracos marcados, em ordem ao longo da linha (índice global crescente).</summary>
+        private readonly int[] _sel = new int[Rules.RowCount];
+        private readonly int[] _line = new int[Rules.RowCount];
+        private int _selCount;
+
+        /// <summary>Pensadas da máquina, em fila: o solver não aceita duas buscas ao mesmo tempo.</summary>
+        private Task _thinkChain = Task.CompletedTask;
+        private Task<Move> _thinking;
+        private CancellationTokenSource _thinkCts;
 
         public GameSession(GameSettings settings, MisereSolver solver = null, Random rng = null)
         {
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             Settings.Sanitize();
-            _solver = solver ?? new MisereSolver();
-            _ai = new BeachAi(_solver, rng);
+            _ai = new BeachAi(solver ?? new MisereSolver(), rng);
         }
 
         public GameSettings Settings { get; }
@@ -34,19 +44,39 @@ namespace TapaBuraco.Core
         /// <summary>Travado durante animações: nenhuma entrada é aceita.</summary>
         public bool IsBusy { get; set; }
 
-        public int SelectedRow { get; private set; } = -1;
+        /// <summary>Quantos buracos estão marcados.</summary>
+        public int SelectedCount => _selCount;
 
-        /// <summary>Buracos marcados na fileira selecionada (máscara local da fileira).</summary>
-        public uint SelectedHoles { get; private set; }
+        /// <summary>Máscara global dos buracos marcados.</summary>
+        public uint SelectedMask
+        {
+            get
+            {
+                uint mask = 0u;
+                for (int i = 0; i < _selCount; i++)
+                {
+                    mask |= 1u << _sel[i];
+                }
 
-        public int SelectedCount => Board.PopCount(SelectedHoles);
+                return mask;
+            }
+        }
+
+        /// <summary>k-ésimo buraco marcado (índice global), na ordem da linha.</summary>
+        public int SelectedCell(int k) => _sel[k];
+
+        /// <summary>Com 2+ marcados: true se a linha é horizontal (fileira), false se vertical.</summary>
+        public bool SelectionIsHorizontal => _selCount < 2 || Board.RowOf(_sel[0]) == Board.RowOf(_sel[1]);
 
         public bool IsMachineTurn => Settings.mode == GameMode.Cpu && CurrentPlayer == 1;
+
+        /// <summary>A máquina ainda está calculando o lance pedido em <see cref="ThinkMachineMove"/>.</summary>
+        public bool IsMachineThinking => _thinking != null && !_thinking.IsCompleted;
 
         /// <summary>Só o último buraco do tabuleiro continua aberto — quem tapar perde.</summary>
         public bool IsLastHoleOnBoard => Board.OpenCount == 1;
 
-        public bool CanConfirm => !IsOver && !IsBusy && !IsMachineTurn && SelectedHoles != 0u;
+        public bool CanConfirm => !IsOver && !IsBusy && !IsMachineTurn && _selCount > 0;
 
         public event Action SelectionChanged;
 
@@ -58,123 +88,174 @@ namespace TapaBuraco.Core
         /// <summary>Fim de partida: quem venceu.</summary>
         public event Action<int> GameEnded;
 
-        /// <summary>Recusas e trocas de fileira, para feedback de som/tela.</summary>
-        public event Action<SelectionResult, int, int> SelectionFeedback;
-
         /// <summary>Reinicia o tabuleiro mantendo placar e alternando quem começa.</summary>
         public void NewGame()
         {
+            CancelMachineThinking();
             Board = Board.Dug;
             IsOver = false;
             IsBusy = false;
             Winner = -1;
-            SelectedRow = -1;
-            SelectedHoles = 0u;
+            _selCount = 0;
             CurrentPlayer = Settings.starter;
             SelectionChanged?.Invoke();
             TurnChanged?.Invoke();
         }
 
-        /// <summary>Resolve antecipadamente a variante atual (evita travar no primeiro lance da máquina).</summary>
-        public void PrewarmSolver() => _solver.Prewarm(Settings.variant);
-
-        /// <summary>Toque do humano em um buraco. Replica exatamente as regras do protótipo.</summary>
-        public SelectionResult ToggleHole(int row, int index)
+        /// <summary>
+        /// Toque do humano em um buraco — o <c>clicaBuraco</c> do protótipo. A seleção é sempre
+        /// um trecho reto e contínuo de buracos abertos; tocar no começo e no fim marca tudo.
+        /// </summary>
+        public SelectionResult ToggleHole(int row, int column)
         {
-            if (IsOver || IsBusy || IsMachineTurn || row < 0 || row >= Rules.RowCount)
+            if (IsOver || IsBusy || IsMachineTurn || !Board.Exists(row, column) || !Board.IsOpen(row, column))
             {
-                return Report(SelectionResult.Rejected, row, index);
+                return SelectionResult.Rejected;
             }
 
-            if (index < 0 || index >= Board.RowLength(row) || !Board.IsOpen(row, index))
+            int k = Board.Index(row, column);
+            if (_selCount == 0)
             {
-                return Report(SelectionResult.Rejected, row, index);
+                SelectOnly(k);
+                return SelectionResult.Started;
             }
 
-            uint bit = 1u << index;
-
-            // Tocar em outra fileira limpa a marcação anterior.
-            if (SelectedRow != row)
+            int pos = Array.IndexOf(_sel, k, 0, _selCount);
+            if (pos >= 0)
             {
-                SelectedRow = row;
-                SelectedHoles = bit;
-                SelectionChanged?.Invoke();
-                return Report(SelectionResult.RowChanged, row, index);
-            }
-
-            // Tocar de novo no mesmo buraco desmarca.
-            if ((SelectedHoles & bit) != 0u)
-            {
-                SelectedHoles &= ~bit;
-                if (Settings.variant == Variant.Vizinhos && SelectedHoles != 0u)
+                // Desmarcar: na ponta encurta; no meio fica o pedaço maior (a linha não pode ter buraco).
+                if (pos == _selCount - 1)
                 {
-                    SelectedHoles = LargestContiguousBlock(SelectedHoles);
+                    _selCount--;
+                }
+                else if (pos == 0)
+                {
+                    Array.Copy(_sel, 1, _sel, 0, _selCount - 1);
+                    _selCount--;
+                }
+                else
+                {
+                    int left = pos;
+                    int right = _selCount - pos - 1;
+                    if (left >= right)
+                    {
+                        _selCount = left;
+                    }
+                    else
+                    {
+                        Array.Copy(_sel, pos + 1, _sel, 0, right);
+                        _selCount = right;
+                    }
                 }
 
-                if (SelectedHoles == 0u)
-                {
-                    SelectedRow = -1;
-                }
-
                 SelectionChanged?.Invoke();
-                return Report(SelectionResult.Removed, row, index);
+                return SelectionResult.Removed;
             }
 
-            if (Settings.variant == Variant.Vizinhos && SelectedHoles != 0u && !TouchesSelection(index))
+            // Estender: a nova linha vai da ponta mais distante até o buraco tocado.
+            int first = _sel[0];
+            int length = LineBetween(Math.Min(first, k), Math.Max(_sel[_selCount - 1], k), _line);
+            // A linha tem de conter o buraco tocado E a seleção inteira.
+            bool aligned = length > 0 && Array.IndexOf(_line, k, 0, length) >= 0;
+            for (int i = 0; aligned && i < _selCount; i++)
             {
-                // Não encosta: recomeça a marcação nesse buraco (e avisa).
-                SelectedHoles = bit;
-                SelectionChanged?.Invoke();
-                return Report(SelectionResult.RejectedNotAdjacent, row, index);
+                aligned = Array.IndexOf(_line, _sel[i], 0, length) >= 0;
             }
 
-            SelectedHoles |= bit;
+            if (!aligned)
+            {
+                bool diagonal = _selCount == 1
+                    && Math.Abs(Board.RowOf(first) - row) == Math.Abs(Board.ColumnOf(first) - column);
+                SelectOnly(k);
+                return diagonal ? SelectionResult.RestartedDiagonal : SelectionResult.RestartedNotStraight;
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (!Board.IsOpen(_line[i]))
+                {
+                    SelectOnly(k);
+                    return SelectionResult.Blocked;
+                }
+            }
+
+            Array.Copy(_line, _sel, length);
+            _selCount = length;
             SelectionChanged?.Invoke();
-            return Report(SelectionResult.Added, row, index);
+            return SelectionResult.Extended;
         }
 
         /// <summary>Botão "Desfazer": limpa a marcação.</summary>
         public void ClearSelection()
         {
-            if (SelectedHoles == 0u && SelectedRow < 0)
+            if (_selCount == 0)
             {
                 return;
             }
 
-            SelectedRow = -1;
-            SelectedHoles = 0u;
+            _selCount = 0;
             SelectionChanged?.Invoke();
         }
 
-        /// <summary>Lance montado a partir da marcação atual.</summary>
-        public Move BuildSelectedMove() => new Move(SelectedRow, SelectedHoles);
+        /// <summary>Lance montado a partir da marcação atual (sempre um trecho válido quando há marcação).</summary>
+        public bool TryBuildSelectedMove(out Move move)
+        {
+            move = default;
+            return _selCount > 0 && Move.TryFromMask(SelectedMask, out move);
+        }
 
         /// <summary>Confirma a marcação ("TAPAR"). Devolve false se o lance for ilegal.</summary>
         public bool ConfirmSelection()
         {
-            if (!CanConfirm)
-            {
-                return false;
-            }
-
-            return Apply(BuildSelectedMove());
+            return CanConfirm && TryBuildSelectedMove(out Move move) && Apply(move);
         }
 
-        /// <summary>Lance escolhido pela máquina para a vez atual.</summary>
-        public Move ChooseMachineMove() => _ai.Choose(Board, Settings.variant, Settings.level);
+        /// <summary>
+        /// Pede o lance da máquina para o tabuleiro atual, calculado fora da thread que chamou.
+        /// A busca do Rato pode levar segundos; quem chamou acompanha a <see cref="Task"/> sem travar.
+        /// Uma pensada nova cancela a anterior.
+        /// </summary>
+        public Task<Move> ThinkMachineMove()
+        {
+            CancelMachineThinking();
+            var cts = new CancellationTokenSource();
+            _thinkCts = cts;
 
-        /// <summary>Aplica um lance já validado, encerra a partida se foi o último buraco e passa a vez.</summary>
+            Board board = Board;
+            AiLevel level = Settings.level;
+            Task<Move> task = _thinkChain.ContinueWith(
+                _ => _ai.Choose(board, level, BeachAi.ThinkMilliseconds, cts.Token),
+                CancellationToken.None,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default);
+            _thinkChain = task;
+            _thinking = task;
+            return task;
+        }
+
+        /// <summary>Interrompe a pensada em curso (troca de partida, volta ao menu).</summary>
+        public void CancelMachineThinking()
+        {
+            if (_thinkCts != null)
+            {
+                _thinkCts.Cancel();
+                _thinkCts = null;
+            }
+
+            _thinking = null;
+        }
+
+        /// <summary>Aplica um lance legal, encerra a partida se foi o último buraco e passa a vez.</summary>
         public bool Apply(in Move move)
         {
-            if (IsOver || !MoveGenerator.IsLegal(Board, Settings.variant, move))
+            if (IsOver || !MoveGenerator.IsLegal(Board, move))
             {
                 return false;
             }
 
             int player = CurrentPlayer;
             Board = Board.Apply(move);
-            SelectedRow = -1;
-            SelectedHoles = 0u;
+            _selCount = 0;
             SelectionChanged?.Invoke();
             MoveApplied?.Invoke(player, move, Board);
 
@@ -190,8 +271,44 @@ namespace TapaBuraco.Core
             return true;
         }
 
-        /// <summary>Quem venceria daqui com jogo perfeito (usado por dicas e telemetria local).</summary>
-        public bool CurrentPlayerIsWinning() => _solver.CurrentPlayerWins(Board, Settings.variant);
+        /// <summary>
+        /// Buracos da linha reta entre os índices <paramref name="a"/> ≤ <paramref name="b"/>
+        /// (inclusive), em ordem crescente; -1 se não dividem fileira nem coluna.
+        /// </summary>
+        public static int LineBetween(int a, int b, int[] into)
+        {
+            int ra = Board.RowOf(a), ca = Board.ColumnOf(a);
+            int rb = Board.RowOf(b), cb = Board.ColumnOf(b);
+            int n = 0;
+            if (ra == rb)
+            {
+                for (int c = Math.Min(ca, cb); c <= Math.Max(ca, cb); c++)
+                {
+                    into[n++] = Board.Index(ra, c);
+                }
+
+                return n;
+            }
+
+            if (ca == cb)
+            {
+                for (int r = Math.Min(ra, rb); r <= Math.Max(ra, rb); r++)
+                {
+                    into[n++] = Board.Index(r, ca);
+                }
+
+                return n;
+            }
+
+            return -1;
+        }
+
+        private void SelectOnly(int cell)
+        {
+            _sel[0] = cell;
+            _selCount = 1;
+            SelectionChanged?.Invoke();
+        }
 
         private void EndGame(int winner)
         {
@@ -201,67 +318,6 @@ namespace TapaBuraco.Core
             Settings.gamesFinished++;
             Settings.starter = 1 - Settings.starter; // alterna quem começa
             GameEnded?.Invoke(winner);
-        }
-
-        private bool TouchesSelection(int index)
-        {
-            int min = Board.TrailingZeros(SelectedHoles);
-            int max = 31 - LeadingZeros(SelectedHoles);
-            return index == min - 1 || index == max + 1;
-        }
-
-        /// <summary>Depois de tirar um buraco do meio, fica o maior bloco contíguo.</summary>
-        internal static uint LargestContiguousBlock(uint mask)
-        {
-            uint best = 0u;
-            int bestLen = 0;
-            int i = 0;
-            while (i < 32)
-            {
-                if ((mask & (1u << i)) == 0u)
-                {
-                    i++;
-                    continue;
-                }
-
-                int start = i;
-                while (i < 32 && (mask & (1u << i)) != 0u)
-                {
-                    i++;
-                }
-
-                int len = i - start;
-                if (len > bestLen)
-                {
-                    bestLen = len;
-                    best = ((1u << len) - 1u) << start;
-                }
-            }
-
-            return best;
-        }
-
-        private static int LeadingZeros(uint value)
-        {
-            if (value == 0u)
-            {
-                return 32;
-            }
-
-            int n = 0;
-            while ((value & 0x80000000u) == 0u)
-            {
-                value <<= 1;
-                n++;
-            }
-
-            return n;
-        }
-
-        private SelectionResult Report(SelectionResult result, int row, int index)
-        {
-            SelectionFeedback?.Invoke(result, row, index);
-            return result;
         }
     }
 }

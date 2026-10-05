@@ -260,7 +260,7 @@ namespace TapaBuraco.Game
             }
         }
 
-        /// <summary>Tremida do keyframe <c>nega</c> — jogada recusada pela variante Vizinhos.</summary>
+        /// <summary>Tremida do keyframe <c>nega</c> — linha recusada por buraco tapado no caminho.</summary>
         public void Shake() => _shake = 0f;
 
         /// <summary>Salto do keyframe <c>plop</c> — o montinho acabou de cair no buraco.</summary>

@@ -3,26 +3,16 @@
 
 namespace TapaBuraco.Core
 {
-    /// <summary>Variante de lance permitida em uma fileira.</summary>
-    public enum Variant
-    {
-        /// <summary>Livre: quaisquer buracos abertos da fileira escolhida (Nim misère clássico).</summary>
-        Livre = 0,
-
-        /// <summary>Vizinhos: só buracos contíguos; tapar no meio parte a fileira em dois pedaços.</summary>
-        Vizinhos = 1,
-    }
-
     /// <summary>Força da máquina.</summary>
     public enum AiLevel
     {
         /// <summary>Turista: joga no chute.</summary>
         Turista = 0,
 
-        /// <summary>Banhista de Domingo: acerta o lance vencedor em metade das vezes.</summary>
+        /// <summary>Banhista de Domingo: metade das vezes chuta sem se entregar, metade pensa como o Rato.</summary>
         Banhista = 1,
 
-        /// <summary>Rato de Praia: estratégia perfeita (misère). Só erra se for obrigado.</summary>
+        /// <summary>Rato de Praia: livro de abertura + busca exata com tempo-limite. Quase não erra.</summary>
         Rato = 2,
     }
 
@@ -43,33 +33,42 @@ namespace TapaBuraco.Core
         Papel = 1,
     }
 
-    /// <summary>Resultado de uma tentativa de seleção de buraco.</summary>
+    /// <summary>Resultado de um toque num buraco (o <c>clicaBuraco</c> do protótipo).</summary>
     public enum SelectionResult
     {
-        /// <summary>Buraco entrou na seleção.</summary>
-        Added = 0,
+        /// <summary>Seleção vazia: o buraco virou o começo da linha.</summary>
+        Started = 0,
 
-        /// <summary>Buraco saiu da seleção.</summary>
-        Removed = 1,
+        /// <summary>A linha cresceu até o buraco tocado.</summary>
+        Extended = 1,
 
-        /// <summary>Seleção reiniciada em outra fileira.</summary>
-        RowChanged = 2,
+        /// <summary>Buraco marcado tocado de novo: saiu da ponta ou partiu a linha (fica o lado maior).</summary>
+        Removed = 2,
 
-        /// <summary>Recusado: na variante Vizinhos o buraco não encosta na seleção.</summary>
-        RejectedNotAdjacent = 3,
+        /// <summary>Fora da linha reta: a seleção recomeçou no buraco tocado.</summary>
+        RestartedNotStraight = 3,
+
+        /// <summary>Diagonal a partir de um único buraco: a seleção recomeçou no buraco tocado.</summary>
+        RestartedDiagonal = 4,
+
+        /// <summary>Buraco tapado no caminho: a seleção recomeçou no buraco tocado.</summary>
+        Blocked = 5,
 
         /// <summary>Recusado: não é a vez do humano, buraco já tapado ou partida travada.</summary>
-        Rejected = 4,
+        Rejected = 6,
     }
 
     /// <summary>Constantes compartilhadas do jogo.</summary>
     public static class Rules
     {
-        /// <summary>Fileiras cavadas na areia.</summary>
+        /// <summary>Fileiras cavadas na areia (e colunas: a escada é simétrica).</summary>
         public const int RowCount = 7;
 
-        /// <summary>Buracos totais: 1+2+3+4+5+6+7.</summary>
+        /// <summary>Buracos totais: 7+6+5+4+3+2+1.</summary>
         public const int HoleCount = 28;
+
+        /// <summary>Trechos em linha reta distintos (lances possíveis no tabuleiro cheio).</summary>
+        public const int SegmentCount = 140;
 
         /// <summary>Quem tapa o último buraco perde (misère).</summary>
         public const bool LastMoveLoses = true;

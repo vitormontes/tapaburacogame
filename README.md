@@ -1,7 +1,7 @@
 # 🏖️ TAPA BURACO
 
-> Jogo de praia carioca. Sete fileiras cavadas na areia — 1, 2, 3, 4, 5, 6 e 7 buracos, **28 no total**.
-> Na sua vez você escolhe **uma única fileira** e tapa **quantos buracos quiser** dela.
+> Jogo de praia carioca. Sete fileiras cavadas na areia, em escada: 7 buracos no topo, depois 6, 5… até 1 — **28 no total**.
+> Na sua vez você tapa **quantos buracos quiser em linha reta**: numa fileira (horizontal) ou numa coluna (vertical).
 > **Quem tapar o último buraco do tabuleiro perde** — e leva um caldo.
 
 ## ▶️ Jogar agora
@@ -9,7 +9,7 @@
 **<https://vitormontes.github.io/tapaburacogame/>**
 
 Roda no navegador do celular ou do computador, sem instalar nada e **sem conexão depois de carregar**:
-o jogo inteiro é um arquivo só (`index.html`, ~79 KB) — arte em SVG desenhada à mão, som sintetizado
+o jogo inteiro é um arquivo só (`index.html`, ~105 KB) — arte em SVG desenhada à mão, som sintetizado
 na hora com Web Audio e nenhuma dependência externa.
 
 > 🔈 **No iPhone**: o Safari silencia o áudio da web quando a chavinha lateral está no mudo.
@@ -17,29 +17,38 @@ na hora com Web Audio e nenhuma dependência externa.
 
 ## Como se joga
 
-- Escolha uma fileira e marque os buracos que quiser tapar; confirme na **pazinha TAPAR**.
-- Tocar num buraco de outra fileira limpa a marcação anterior.
-- Variante **Livre**: valem quaisquer buracos da fileira.
-- Variante **Vizinhos**: só valem buracos grudados em sequência — e tapar no meio parte a fileira em duas.
+- O tabuleiro é uma escada alinhada à esquerda: as fileiras têm 7, 6, 5, 4, 3, 2 e 1 buracos, e as
+  colunas também.
+- Na sua vez, tape quantos buracos quiser, desde que estejam **em linha reta**: na horizontal (uma
+  fileira) ou na vertical (uma coluna). **Diagonal não vale.**
+- Um buraco já tapado **bloqueia a linha**: em `O O O X O` dá para tapar até o X, e o último O fica
+  separado.
+- Toque nos buracos para marcar (tocar no começo e no fim marca o trecho todo) e confirme na
+  **pazinha TAPAR**.
 - **Quem tapar o último buraco perde.**
 
-Adversários: **Turista** (joga no chute), **Banhista de Domingo** (acerta metade das vezes) e
-**Rato de Praia** (estratégia perfeita de Nim misère — só erra se você obrigar). Também dá para jogar
-2 jogadores no mesmo aparelho. Dois estilos visuais: *Areia de Copacabana* e *Papel de Pão*.
+Na tela inicial há só dois modos: **Contra o computador** (escolhe o adversário e já começa) e
+**2 jogadores** no mesmo aparelho. Adversários: **Turista** (joga no chute), **Banhista** (acerta
+metade das vezes) e **Rato de Praia** (quase não erra). Estilo visual (*Areia de Copacabana* ou
+*Papel de Pão*) e som ficam em **Ajustes**.
 
-Atalhos no teclado: `Enter`/`Espaço` tapa, `Backspace` desfaz, `Esc` fecha as regras.
+Atalhos no teclado: `Enter`/`Espaço` tapa, `Backspace` desfaz, `Esc` fecha os painéis.
 
 ## A matemática por trás
 
-É **Nim misère**. Cada fileira é uma pilha:
+É um jogo imparcial **misère** sobre a escada de 28 buracos: cada lance tira um trecho contíguo de uma
+fileira ou de uma coluna. Os buracos abertos cabem num inteiro de 28 bits e os 140 trechos possíveis
+são máscaras fixas; a escada é simétrica pela diagonal, então posição e espelho dividem o mesmo
+resultado.
 
-- Na variante **Livre**, tirar $k$ buracos de uma fileira é exatamente tirar $k$ peças de uma pilha —
-  Nim clássico, com a regra invertida de quem tira a última peça.
-- Na variante **Vizinhos**, tapar no meio parte a pilha em duas: o jogo vira o **jogo octal .777**.
+O *Rato de Praia* usa busca exata (memória de 4 Mi de posições, ~20 MB) num Web Worker:
 
-A estratégia perfeita do *Rato de Praia* não é heurística: é busca exaustiva memoizada sobre as
-partições com partes $\le 7$ e soma $\le 28$ (8.560 estados por variante), e na variante Livre ela é
-cruzada com a fórmula fechada do Nim misère.
+- **Abertura pré-calculada.** O primeiro lance vencedor com o tabuleiro cheio e a resposta vencedora a
+  112 dos 140 primeiros lances do adversário vêm embutidos (busca exaustiva offline). Pela regra, quem
+  começa ganha com jogo perfeito.
+- **Meio e fim.** Com 23 buracos abertos ou menos a prova sai praticamente na hora; antes disso cada
+  lance tem 2,5 s. Se o tempo acaba sem achar vitória (ou se não existe vitória), ele tapa um buraco só
+  e deixa o tabuleiro complicado. Por isso é "quase": nas primeiras jogadas ele pode errar.
 
 ## Estrutura do repositório
 
@@ -47,16 +56,19 @@ cruzada com a fórmula fechada do Nim misère.
 |---|---|
 | `index.html` | O jogo web completo — **é o que a página publicada serve** |
 | `unity/` | Porte para Unity 6 (6000.0.58f1), uGUI, sem prefabs e sem cena montada |
-| `tools/CoreTests/` | Verificação headless das regras (240.253 verificações) |
+| `tools/CoreTests/` | Verificação headless das regras (~78 mil verificações) |
 | `tools/Harness/` | Shim de `UnityEngine` + simulação headless da camada de apresentação |
 | `tools/art/` | SVGs de origem e rasterização para `unity/Assets/Resources/Art` |
 | `_r1.md`, `_r2.md` | Pesquisa para a fase futura de simulação de areia/água (SPH e PIC/FLIP) |
 
 ## O porte para Unity
 
-- `Assets/Scripts/Core` (`TapaBuraco.Core`, asmdef com `noEngineReferences`): regras, tabuleiro em
-  bitmask de 28 bits, gerador de lances, solver misère memoizado e IA. **Zero `UnityEngine`** — por
-  isso roda no `dotnet` puro e é testado de verdade.
+- `Assets/Scripts/Core` (`TapaBuraco.Core`, asmdef com `noEngineReferences`): regras da escada,
+  tabuleiro em bitmask de 28 bits, os 140 trechos, solver misère com tabela de transposição e
+  tempo-limite, livro de abertura (o mesmo da web) e IA. **Zero `UnityEngine`**: por isso roda no
+  `dotnet` puro e é testado de verdade.
+  A busca do Rato roda no thread pool (`GameSession.ThinkMachineMove`), então um build WebGL, que
+  não tem threads, ainda precisaria de outra estratégia.
 - `Assets/Scripts/Game` (`TapaBuraco.Game`): apresentação. `GameApp` é o único MonoBehaviour dono do
   fluxo; as telas são classes normais que montam a própria subárvore de UI.
   - Arte de interface **gerada em código** (`SpriteFactory`) e tingida pela `Palette` — a troca de
@@ -73,8 +85,8 @@ Para rodar: abrir a pasta `unity/` no Unity 6000.0.58f1 e dar Play.
 ## Verificação (sem precisar do Unity)
 
 ```bash
-cd tools/CoreTests && dotnet run -c Release   # 240.253 verificações das regras misère
-cd tools/Harness   && dotnet run -c Release   # 64 verificações: boot → título → setup → partida → fim → revanche
+cd tools/CoreTests && dotnet run -c Release   # ~78 mil verificações: lances, bloqueio, solver x minimax, livro de abertura
+cd tools/Harness   && dotnet run -c Release   # 120 verificações: boot → título → nível → partida → fim → revanche → menu → 2 jogadores
 ```
 
 O harness compila o núcleo **e** a camada de apresentação contra um shim de `UnityEngine`

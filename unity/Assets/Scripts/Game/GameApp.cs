@@ -1,5 +1,5 @@
 using System.Collections;
-using System.Diagnostics;
+using System.Threading.Tasks;
 using TapaBuraco.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -31,8 +31,9 @@ namespace TapaBuraco.Game
 
         /// <summary>D5 — duração do tremor de derrota.</summary>
         private const float ShakeSeconds = 0.120f;
-        private const float MachineThinkSeconds = 0.260f;
-        private const float MachineMinTurnSeconds = 0.420f;
+
+        /// <summary>Tempo mínimo da vez da máquina, contado do início da pensada (680 ms no protótipo).</summary>
+        private const float MachineMinTurnSeconds = 0.680f;
         private const float EndCardDelaySeconds = 0.520f;
         private const float FirstMachineMoveSeconds = 0.650f;
 
@@ -58,31 +59,30 @@ namespace TapaBuraco.Game
         private FrameDecor _frame;
 
         private TitleScreen _title;
-        private SetupScreen _setup;
+        private SettingsModal _settingsModal;
         private GameScreen _game;
         private EndScreen _end;
         private RulesModal _rules;
 
-        private readonly int[] _moveIndices = new int[Rules.RowCount];
         private readonly WaitForSeconds _waitHoleStep = new WaitForSeconds(HoleStepSeconds);
         private readonly WaitForSeconds _waitSandFall = new WaitForSeconds(SandFallSeconds);
         private readonly WaitForSeconds _waitTurnTail = new WaitForSeconds(TurnTailSeconds);
-        private readonly WaitForSeconds _waitThink = new WaitForSeconds(MachineThinkSeconds);
         private readonly WaitForSeconds _waitEndCard = new WaitForSeconds(EndCardDelaySeconds);
         private readonly WaitForSeconds _waitFirstMove = new WaitForSeconds(FirstMachineMoveSeconds);
 
         private Board _displayBoard = Board.Dug;
         private Coroutine _turnRoutine;
         private bool _endScreenVisible;
-        private float _pendingHintTimer;
+
+        /// <summary>Recado curto na dica (o <c>J.aviso</c>) até a próxima marcação.</summary>
+        private string _notice = string.Empty;
 
         /// <summary>Telas do app (o <c>.tela.ativa</c> do protótipo).</summary>
         private enum ScreenId
         {
             Title = 0,
-            Setup = 1,
-            Play = 2,
-            End = 3,
+            Play = 1,
+            End = 2,
         }
 
         private ScreenId _screen = ScreenId.Title;
@@ -138,6 +138,7 @@ namespace TapaBuraco.Game
             }
 
             Palette.SkinChanged -= OnSkinChanged;
+            _session?.CancelMachineThinking();
 
             // Texturas, sprites e clipes são gerados em runtime: soltá-los evita que o editor
             // acumule cópias a cada entrada em Play Mode (os caches são estáticos).
@@ -199,7 +200,6 @@ namespace TapaBuraco.Game
             _shakeHome = appArea.anchoredPosition;
 
             _title = new TitleScreen(appArea);
-            _setup = new SetupScreen(appArea, _settings);
             _game = new GameScreen(appArea);
             _end = new EndScreen(appArea);
 
@@ -216,13 +216,14 @@ namespace TapaBuraco.Game
             _frame = new FrameDecor(_uiRoot);
 
             _rules = new RulesModal(_uiRoot);
+            _settingsModal = new SettingsModal(_uiRoot, _settings);
 
-            _title.PlayClicked += OnTitlePlay;
+            _title.CpuClicked += OnTitleCpu;
+            _title.TwoPlayersClicked += () => StartGame(GameMode.DoisJogadores, _settings.level);
+            _title.LevelChosen += level => StartGame(GameMode.Cpu, level);
+            _title.BackClicked += OnTitleBack;
             _title.RulesClicked += OnOpenRules;
-
-            _setup.Changed += OnSetupChanged;
-            _setup.StartClicked += OnStartGame;
-            _setup.BackClicked += () => ShowScreen(ScreenId.Title);
+            _title.SettingsClicked += OnOpenSettings;
 
             _game.Board.HoleClicked += OnHoleClicked;
             _game.ConfirmClicked += OnConfirm;
@@ -230,12 +231,14 @@ namespace TapaBuraco.Game
             _game.Hud.SoundClicked += OnToggleAllSound;
             _game.Hud.SkinClicked += OnToggleSkin;
             _game.Hud.RulesClicked += OnOpenRules;
-            _game.Hud.MenuClicked += () => ShowScreen(ScreenId.Setup);
+            _game.Hud.MenuClicked += GoToMenu;
 
             _end.AgainClicked += OnStartGame;
-            _end.MenuClicked += () => ShowScreen(ScreenId.Setup);
+            _end.MenuClicked += GoToMenu;
 
             _rules.Closed += () => _rules.SetVisible(false);
+            _settingsModal.Closed += () => _settingsModal.SetVisible(false);
+            _settingsModal.Changed += OnSettingsChanged;
 
             Palette.SkinChanged += OnSkinChanged;
             OnSkinChanged();
@@ -247,15 +250,9 @@ namespace TapaBuraco.Game
         {
             _screen = screen;
             _title.SetVisible(screen == ScreenId.Title);
-            _setup.SetVisible(screen == ScreenId.Setup);
             _game.SetVisible(screen == ScreenId.Play);
             _end.SetVisible(screen == ScreenId.End);
             _endScreenVisible = screen == ScreenId.End;
-
-            if (screen == ScreenId.Setup)
-            {
-                _setup.Refresh();
-            }
         }
 
         private void OnSkinChanged()
@@ -267,7 +264,7 @@ namespace TapaBuraco.Game
             _grain.color = Palette.Tinta.WithAlpha(Palette.IsPaper ? 0.24f : 0.16f);
 
             _title.ApplySkin();
-            _setup.ApplySkin();
+            _settingsModal.ApplySkin();
             _game.ApplySkin();
             _end.ApplySkin();
             _rules.ApplySkin();
@@ -276,10 +273,24 @@ namespace TapaBuraco.Game
 
         // ------------------------------------------------------------------ menus
 
-        private void OnTitlePlay()
+        private void OnTitleCpu()
         {
             _sound.Tap(true);
-            ShowScreen(ScreenId.Setup);
+            _title.ShowLevelChoice(_settings.level);
+        }
+
+        private void OnTitleBack()
+        {
+            _sound.Tap(false);
+            _title.ShowModeChoice();
+        }
+
+        /// <summary>Menu do HUD e "Menu" do fim: descarta lance de máquina ou animação em curso (o <c>irMenu</c>).</summary>
+        private void GoToMenu()
+        {
+            StopTurnRoutine();
+            _title.ShowModeChoice();
+            ShowScreen(ScreenId.Title);
         }
 
         private void OnOpenRules()
@@ -288,7 +299,13 @@ namespace TapaBuraco.Game
             _rules.SetVisible(true);
         }
 
-        private void OnSetupChanged()
+        private void OnOpenSettings()
+        {
+            _sound.Tap(true);
+            _settingsModal.SetVisible(true);
+        }
+
+        private void OnSettingsChanged()
         {
             _sound.Tap(true);
             _sound.ApplyMix();
@@ -321,7 +338,7 @@ namespace TapaBuraco.Game
 
             _sound.ApplyMix();
             _game.Hud.SetSoundOn(_settings.AnySound);
-            _setup.Refresh();
+            _settingsModal.Refresh();
             SettingsStore.Save(_settings);
         }
 
@@ -329,19 +346,43 @@ namespace TapaBuraco.Game
         {
             Palette.SetSkin(Palette.IsPaper ? Skin.Praia : Skin.Papel);
             _settings.skin = Palette.Skin;
-            _setup.Refresh();
+            _settingsModal.Refresh();
             _sound.Tap(true);
             SettingsStore.Save(_settings);
         }
 
         // ------------------------------------------------------------------ partida
 
+        /// <summary>
+        /// Escolha no título (o <c>comeca</c> do protótipo): o placar é contra UM adversário,
+        /// então trocar de modo ou de nível zera.
+        /// </summary>
+        private void StartGame(GameMode mode, AiLevel level)
+        {
+            if (mode != _settings.mode || (mode == GameMode.Cpu && level != _settings.level))
+            {
+                _settings.score[0] = 0;
+                _settings.score[1] = 0;
+            }
+
+            _settings.mode = mode;
+            if (mode == GameMode.Cpu)
+            {
+                _settings.level = level;
+            }
+
+            SettingsStore.Save(_settings);
+            _sound.ApplyMix();
+            _sound.Tap(true);
+            OnStartGame();
+        }
+
         private void OnStartGame()
         {
             StopTurnRoutine();
             _session.NewGame();
-            _session.PrewarmSolver();
             _displayBoard = _session.Board;
+            _notice = string.Empty;
 
             _game.Hud.SetNames(PlayerName(0), PlayerName(1));
             _game.Hud.SetScore(_settings.score[0], _settings.score[1]);
@@ -358,27 +399,37 @@ namespace TapaBuraco.Game
             }
         }
 
-        private void OnHoleClicked(int row, int index)
+        private void OnHoleClicked(int row, int column)
         {
             if (_session.IsBusy || _session.IsOver || _session.IsMachineTurn)
             {
                 return;
             }
 
-            SelectionResult result = _session.ToggleHole(row, index);
+            // O recado vale até a próxima marcação; a seleção nova já repinta a dica.
+            _notice = string.Empty;
+            SelectionResult result = _session.ToggleHole(row, column);
             switch (result)
             {
-                case SelectionResult.Added:
+                case SelectionResult.Started:
+                case SelectionResult.Extended:
                     _sound.Tap(true);
                     break;
                 case SelectionResult.Removed:
-                case SelectionResult.RowChanged:
                     _sound.Tap(false);
                     break;
-                case SelectionResult.RejectedNotAdjacent:
+                case SelectionResult.RestartedDiagonal:
+                    _sound.Tap(false);
+                    ShowNotice("<b>Diagonal não vale</b> — só na horizontal ou na vertical");
+                    break;
+                case SelectionResult.RestartedNotStraight:
+                    _sound.Tap(false);
+                    ShowNotice("Recomeçou aqui: só vale <b>uma linha reta</b>");
+                    break;
+                case SelectionResult.Blocked:
                     _sound.Error();
-                    _game.Board.PlayReject(row, index);
-                    FlashHint("Nessa variante só valem buracos <b>vizinhos</b>");
+                    _game.Board.PlayReject(row, column);
+                    ShowNotice("Tem buraco <b>tapado no caminho</b> — a linha para nele");
                     break;
                 case SelectionResult.Rejected:
                 default:
@@ -393,18 +444,19 @@ namespace TapaBuraco.Game
                 return;
             }
 
+            _notice = string.Empty;
             _session.ClearSelection();
+            UpdateHint();
             _sound.Tap(false);
         }
 
         private void OnConfirm()
         {
-            if (!_session.CanConfirm)
+            if (!_session.CanConfirm || !_session.TryBuildSelectedMove(out Move move))
             {
                 return;
             }
 
-            Move move = _session.BuildSelectedMove();
             StopTurnRoutine();
             _turnRoutine = StartCoroutine(PlayMove(move));
         }
@@ -437,23 +489,22 @@ namespace TapaBuraco.Game
         private IEnumerator PlayMove(Move move)
         {
             _session.IsBusy = true;
+            _notice = string.Empty;
             _session.ClearSelection();
             RenderBoard();
             UpdateHint();
 
-            // WriteIndices devolve os buracos em ordem crescente; o buffer é reaproveitado
-            // porque corrotina não aceita stackalloc.
-            int written = move.WriteIndices(_moveIndices);
-
-            for (int k = 0; k < written; k++)
+            int[] cells = move.Cells;
+            for (int k = 0; k < cells.Length; k++)
             {
-                int hole = _moveIndices[k];
-                Vector2 center = _game.Board.HoleCenter(move.Row, hole);
+                int row = Board.RowOf(cells[k]);
+                int column = Board.ColumnOf(cells[k]);
+                Vector2 center = _game.Board.HoleCenter(row, column);
                 _game.Board.Fx.Dig(center, _game.Board.Unit, _settings.reducedMotion);
                 _sound.Sand(1f - k * 0.06f);
                 Haptic();
 
-                StartCoroutine(CoverAfterDelay(move.Row, hole));
+                StartCoroutine(CoverAfterDelay(row, column));
                 yield return _waitHoleStep;
             }
 
@@ -482,12 +533,12 @@ namespace TapaBuraco.Game
             _turnRoutine = null;
         }
 
-        private IEnumerator CoverAfterDelay(int row, int index)
+        private IEnumerator CoverAfterDelay(int row, int column)
         {
             yield return _waitSandFall;
-            _displayBoard = _displayBoard.Cover(row, index);
+            _displayBoard = _displayBoard.Cover(row, column);
             RenderBoard();
-            _game.Board.PlayCovered(row, index);
+            _game.Board.PlayCovered(row, column);
             UpdateHint();
 
             // D5 — o tranco de tela é exclusivo do último buraco do tabuleiro: é o instante da
@@ -498,7 +549,11 @@ namespace TapaBuraco.Game
             }
         }
 
-        /// <summary>Pensada da máquina: pausa curta, escolhe e mantém um tempo mínimo de "suspense".</summary>
+        /// <summary>
+        /// Vez da máquina: a busca roda fora da thread principal (o Web Worker do protótipo) e
+        /// a corrotina só espera ela terminar, com a dica "está pensando…" e a areia animada.
+        /// Um tempo mínimo de "suspense" vale mesmo quando a resposta sai na hora.
+        /// </summary>
         private IEnumerator MachineTurn(bool firstMoveOfGame)
         {
             _session.IsBusy = true;
@@ -510,14 +565,17 @@ namespace TapaBuraco.Game
                 yield return _waitFirstMove;
             }
 
-            yield return _waitThink;
+            float started = Time.unscaledTime;
+            Task<Move> thinking = _session.ThinkMachineMove();
+            while (!thinking.IsCompleted)
+            {
+                yield return null;
+            }
 
-            var watch = Stopwatch.StartNew();
-            Move move = _session.ChooseMachineMove();
-            watch.Stop();
+            // Falha da busca é bug: Result relança a exceção e a Unity a registra.
+            Move move = thinking.Result;
 
-            float spent = (float)watch.Elapsed.TotalSeconds;
-            float wait = Mathf.Max(0f, MachineMinTurnSeconds - spent);
+            float wait = MachineMinTurnSeconds - (Time.unscaledTime - started);
             if (wait > 0f)
             {
                 yield return new WaitForSeconds(wait);
@@ -527,9 +585,11 @@ namespace TapaBuraco.Game
             _turnRoutine = StartCoroutine(PlayMove(move));
         }
 
+        /// <summary>Para animações e a pensada da máquina (o resultado atrasado é descartado).</summary>
         private void StopTurnRoutine()
         {
             StopAllCoroutines();
+            _session.CancelMachineThinking();
             _turnRoutine = null;
             _session.IsBusy = false;
             StopShake();
@@ -586,18 +646,17 @@ namespace TapaBuraco.Game
             bool humanTurn = !_session.IsBusy && !_session.IsOver && !_session.IsMachineTurn;
             _game.Board.Render(
                 _displayBoard,
-                _session.SelectedRow,
-                _session.SelectedHoles,
+                _session.SelectedMask,
                 humanTurn,
                 _settings.reducedMotion);
 
             _game.Hud.SetActivePlayer(_session.CurrentPlayer, _session.IsOver);
-            _game.SetActions(_session.CanConfirm, _session.SelectedHoles != 0u && !_session.IsBusy);
+            _game.SetActions(_session.CanConfirm, _session.SelectedCount > 0 && !_session.IsBusy);
         }
 
         private void UpdateHint()
         {
-            if (_session.IsOver || _pendingHintTimer > 0f)
+            if (_session.IsOver)
             {
                 return;
             }
@@ -622,23 +681,33 @@ namespace TapaBuraco.Game
                 return $"Vez do <b>{LevelShortNames[(int)_settings.level]}</b>";
             }
 
-            string who = _settings.mode == GameMode.Cpu ? "Sua vez" : $"Vez do <b>{PlayerName(_session.CurrentPlayer)}</b>";
+            if (_notice.Length > 0)
+            {
+                return _notice;
+            }
+
             int selected = _session.SelectedCount;
             if (selected == 0)
             {
+                string who = _settings.mode == GameMode.Cpu ? "Sua vez" : $"Vez do <b>{PlayerName(_session.CurrentPlayer)}</b>";
                 return _displayBoard.OpenCount == 1
                     ? $"{who} — <b>só sobrou um!</b>"
-                    : $"{who}: escolha buracos de <b>uma fileira</b>";
+                    : $"{who}: tape buracos <b>em linha reta</b>";
             }
 
-            string plural = selected > 1 ? "s" : string.Empty;
-            return $"Fileira <b>{_session.SelectedRow + 1}</b> — <b>{selected}</b> buraco{plural} marcado{plural}";
+            if (selected == 1)
+            {
+                return "<b>1</b> buraco marcado — siga na horizontal ou na vertical";
+            }
+
+            return $"<b>{selected}</b> buracos na <b>{(_session.SelectionIsHorizontal ? "horizontal" : "vertical")}</b>";
         }
 
-        private void FlashHint(string message)
+        /// <summary>Recado na dica até a próxima marcação (o <c>J.aviso</c>).</summary>
+        private void ShowNotice(string message)
         {
-            _pendingHintTimer = 1.6f;
-            _game.SetHint(message);
+            _notice = message;
+            UpdateHint();
         }
 
         private string PlayerName(int index)
@@ -668,15 +737,6 @@ namespace TapaBuraco.Game
         private void Update()
         {
             float dt = Time.unscaledDeltaTime;
-
-            if (_pendingHintTimer > 0f)
-            {
-                _pendingHintTimer -= dt;
-                if (_pendingHintTimer <= 0f)
-                {
-                    UpdateHint();
-                }
-            }
 
             if (_screen == ScreenId.Play)
             {
@@ -735,6 +795,7 @@ namespace TapaBuraco.Game
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 _rules.SetVisible(false);
+                _settingsModal.SetVisible(false);
                 return;
             }
 

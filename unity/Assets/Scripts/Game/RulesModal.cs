@@ -12,11 +12,10 @@ namespace TapaBuraco.Game
     {
         private static readonly string[] Regras =
         {
-            "Na sua vez, escolha <b>uma única fileira</b> e tape <b>quantos buracos quiser</b> dela (no mínimo um).",
-            "Na variante <b>Livre</b>, valem quaisquer buracos daquela fileira.",
-            "Na variante <b>Vizinhos</b>, só valem buracos <b>grudados em sequência</b> — e tapar no meio parte a fileira em duas.",
-            "Toque nos buracos para marcar e confirme na <b>pazinha TAPAR</b>.",
-            "Tocar num buraco de outra fileira limpa a marcação anterior.",
+            "Na sua vez, tape <b>quantos buracos quiser</b> (no mínimo um), desde que estejam <b>em linha reta</b>: na <b>horizontal</b> (uma fileira) ou na <b>vertical</b> (uma coluna).",
+            "<b>Diagonal não vale.</b>",
+            "Um buraco já tapado <b>bloqueia a linha</b>: a jogada para nele. Em <b>O O O X O</b> dá para tapar até o X, e o O depois dele fica sozinho.",
+            "Toque nos buracos para marcar (tocar no começo e no fim marca o trecho todo) e confirme na <b>pazinha TAPAR</b>.",
             "<b>Quem tapar o último buraco do tabuleiro perde</b> — e leva um caldo.",
         };
 
@@ -85,7 +84,7 @@ namespace TapaBuraco.Game
             scroll.content = lista;
 
             int tamanhoCorpo = UiKit.FontSize(12f, 3.4f, 15f);
-            Paragrafo(lista, "p1", "Sete fileiras cavadas na areia: 1, 2, 3, 4, 5, 6 e 7 buracos. <b>28 buracos</b> no total.", UiKit.Body, tamanhoCorpo);
+            Paragrafo(lista, "p1", "Sete fileiras cavadas na areia, em escada: 7 buracos no topo, depois 6, 5… até 1. <b>28 buracos</b> no total.", UiKit.Body, tamanhoCorpo);
 
             for (int i = 0; i < Regras.Length; i++)
             {
@@ -97,7 +96,7 @@ namespace TapaBuraco.Game
             _nota = Paragrafo(
                 lista,
                 "nota",
-                "O \"Rato de Praia\" joga a estratégia perfeita: nim misère. Ele só erra se você o obrigar.",
+                "O \"Rato de Praia\" calcula a partida até o fim assim que o tabuleiro esvazia um pouco. Ganhar dele é para quem conhece a praia.",
                 UiKit.BodyItalic,
                 tamanhoCorpo,
                 false);

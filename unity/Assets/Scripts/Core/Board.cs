@@ -4,14 +4,25 @@ using System.Runtime.CompilerServices;
 namespace TapaBuraco.Core
 {
     /// <summary>
-    /// Tabuleiro triangular de 7 fileiras (1..7 buracos, 28 no total) em UM único bitmask de 28 bits.
-    /// Bit ligado = buraco ABERTO (ainda não tapado). Struct imutável, zero alocação.
-    /// Índice global do buraco (fileira r, coluna i) = RowOffset(r) + i.
+    /// Escada invertida alinhada à esquerda, em UM único bitmask de 28 bits: a fileira do topo
+    /// (r = 0) tem 7 buracos e a de baixo tem 1. O buraco (r, c) existe se c &lt; 7 - r, então as
+    /// colunas também têm 7, 6 … 1 buracos. Bit ligado = buraco ABERTO (ainda não tapado).
+    /// Índice global do buraco (r, c) = <see cref="RowOffset"/>(r) + c — o mesmo do protótipo web.
+    /// Struct imutável, zero alocação.
     /// </summary>
     public readonly struct Board : IEquatable<Board>
     {
         /// <summary>Máscara com os 28 buracos abertos.</summary>
         public const uint FullMask = (1u << Rules.HoleCount) - 1u;
+
+        /// <summary>Primeiro índice global de cada fileira: 0, 7, 13, 18, 22, 25, 27.</summary>
+        private static readonly int[] Offsets = { 0, 7, 13, 18, 22, 25, 27 };
+
+        /// <summary>Fileira de cada índice global.</summary>
+        private static readonly int[] RowOfCell = BuildRowOfCell();
+
+        /// <summary>Espelho pela diagonal, 4 tabelas de 8 bits (o <c>espelho()</c> do protótipo).</summary>
+        private static readonly uint[] TransposeBytes = BuildTransposeBytes();
 
         /// <summary>Bits abertos. Bit n = buraco global n.</summary>
         public readonly uint Mask;
@@ -24,28 +35,49 @@ namespace TapaBuraco.Core
         /// <summary>Tabuleiro recém-cavado: os 28 buracos abertos.</summary>
         public static Board Dug => new Board(FullMask);
 
-        /// <summary>Primeiro índice global da fileira (0,1,3,6,10,15,21).</summary>
+        /// <summary>Primeiro índice global da fileira.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int RowOffset(int row) => (row * (row + 1)) >> 1;
+        public static int RowOffset(int row) => Offsets[row];
 
-        /// <summary>Quantidade de buracos cavados na fileira (row+1).</summary>
+        /// <summary>Buracos cavados na fileira (7 - row).</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int RowLength(int row) => row + 1;
+        public static int RowLength(int row) => Rules.RowCount - row;
 
-        /// <summary>Máscara de todos os buracos da fileira, alinhada no bit 0.</summary>
+        /// <summary>Buracos cavados na coluna (7 - column) — a escada é simétrica.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint RowFullMask(int row) => (1u << (row + 1)) - 1u;
+        public static int ColumnLength(int column) => Rules.RowCount - column;
 
-        /// <summary>Buracos AINDA ABERTOS da fileira, alinhados no bit 0.</summary>
+        /// <summary>true se o buraco (row, column) existe na escada.</summary>
+        public static bool Exists(int row, int column)
+            => (uint)row < (uint)Rules.RowCount && (uint)column < (uint)RowLength(row);
+
+        /// <summary>Índice global do buraco (row, column).</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public uint RowMask(int row) => (Mask >> RowOffset(row)) & RowFullMask(row);
+        public static int Index(int row, int column) => Offsets[row] + column;
+
+        /// <summary>Fileira do índice global.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int RowOf(int cell) => RowOfCell[cell];
+
+        /// <summary>Coluna do índice global.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ColumnOf(int cell) => cell - Offsets[RowOfCell[cell]];
+
+        /// <summary>Espelha uma máscara pela diagonal: (r, c) ↔ (c, r).</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint Transpose(uint mask)
+            => TransposeBytes[mask & 0xFFu]
+               | TransposeBytes[256 + ((mask >> 8) & 0xFFu)]
+               | TransposeBytes[512 + ((mask >> 16) & 0xFFu)]
+               | TransposeBytes[768 + ((mask >> 24) & 0xFFu)];
 
         /// <summary>true se o buraco continua aberto.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsOpen(int row, int index) => (Mask & (1u << (RowOffset(row) + index))) != 0u;
+        public bool IsOpen(int row, int column) => (Mask & (1u << (Offsets[row] + column))) != 0u;
 
-        /// <summary>Buracos abertos na fileira.</summary>
-        public int RowOpenCount(int row) => PopCount(RowMask(row));
+        /// <summary>true se o buraco de índice global <paramref name="cell"/> continua aberto.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsOpen(int cell) => (Mask & (1u << cell)) != 0u;
 
         /// <summary>Buracos abertos no tabuleiro inteiro.</summary>
         public int OpenCount => PopCount(Mask);
@@ -53,86 +85,11 @@ namespace TapaBuraco.Core
         /// <summary>Todos os buracos tapados: a partida acabou.</summary>
         public bool IsEmpty => Mask == 0u;
 
-        /// <summary>Aplica um lance: tapa os buracos indicados. Não valida legalidade.</summary>
-        public Board Apply(in Move move)
-        {
-            uint global = move.RowHoles << RowOffset(move.Row);
-            return new Board(Mask & ~global);
-        }
+        /// <summary>Aplica um lance: tapa os buracos do trecho. Não valida legalidade.</summary>
+        public Board Apply(in Move move) => new Board(Mask & ~move.Mask);
 
         /// <summary>Tapa um único buraco.</summary>
-        public Board Cover(int row, int index) => new Board(Mask & ~(1u << (RowOffset(row) + index)));
-
-        /// <summary>
-        /// Comprimentos dos blocos contíguos de buracos abertos da fileira, em ordem.
-        /// Retorna quantos blocos foram escritos em <paramref name="lengths"/> (máx. 4 em 7 buracos).
-        /// </summary>
-        public int RowSegments(int row, Span<int> lengths)
-        {
-            uint bits = RowMask(row);
-            int len = RowLength(row);
-            int count = 0;
-            int run = 0;
-            for (int i = 0; i < len; i++)
-            {
-                if ((bits & (1u << i)) != 0)
-                {
-                    run++;
-                }
-                else if (run > 0)
-                {
-                    lengths[count++] = run;
-                    run = 0;
-                }
-            }
-
-            if (run > 0)
-            {
-                lengths[count++] = run;
-            }
-
-            return count;
-        }
-
-        /// <summary>Índice do primeiro buraco aberto da fileira, ou -1.</summary>
-        public int FirstOpenInRow(int row)
-        {
-            uint bits = RowMask(row);
-            if (bits == 0u)
-            {
-                return -1;
-            }
-
-            return TrailingZeros(bits);
-        }
-
-        /// <summary>Posição canônica (multiconjunto de pedaços) usada pelo solver.</summary>
-        public Position ToPosition(Variant variant)
-        {
-            Position position = default;
-            Span<int> segments = stackalloc int[4];
-            for (int row = 0; row < Rules.RowCount; row++)
-            {
-                if (variant == Variant.Vizinhos)
-                {
-                    int n = RowSegments(row, segments);
-                    for (int s = 0; s < n; s++)
-                    {
-                        position = position.WithPart(segments[s]);
-                    }
-                }
-                else
-                {
-                    int open = RowOpenCount(row);
-                    if (open > 0)
-                    {
-                        position = position.WithPart(open);
-                    }
-                }
-            }
-
-            return position;
-        }
+        public Board Cover(int row, int column) => new Board(Mask & ~(1u << (Offsets[row] + column)));
 
         public bool Equals(Board other) => Mask == other.Mask;
 
@@ -142,12 +99,12 @@ namespace TapaBuraco.Core
 
         public override string ToString()
         {
-            var sb = new System.Text.StringBuilder(64);
+            var sb = new System.Text.StringBuilder(40);
             for (int row = 0; row < Rules.RowCount; row++)
             {
-                for (int i = 0; i < RowLength(row); i++)
+                for (int c = 0; c < RowLength(row); c++)
                 {
-                    sb.Append(IsOpen(row, i) ? 'o' : '.');
+                    sb.Append(IsOpen(row, c) ? 'o' : '.');
                 }
 
                 if (row < Rules.RowCount - 1)
@@ -160,7 +117,7 @@ namespace TapaBuraco.Core
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static int PopCount(uint value)
+        public static int PopCount(uint value)
         {
             // Unity/Mono e IL2CPP não expõem System.Numerics.BitOperations em todos os perfis: conta na mão.
             value -= (value >> 1) & 0x55555555u;
@@ -170,7 +127,7 @@ namespace TapaBuraco.Core
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static int TrailingZeros(uint value)
+        public static int TrailingZeros(uint value)
         {
             if (value == 0u)
             {
@@ -185,6 +142,53 @@ namespace TapaBuraco.Core
             }
 
             return n;
+        }
+
+        private static int[] BuildRowOfCell()
+        {
+            var rows = new int[Rules.HoleCount];
+            for (int row = 0; row < Rules.RowCount; row++)
+            {
+                for (int c = 0; c < Rules.RowCount - row; c++)
+                {
+                    rows[Offsets[row] + c] = row;
+                }
+            }
+
+            return rows;
+        }
+
+        private static uint[] BuildTransposeBytes()
+        {
+            var cellImage = new int[Rules.HoleCount];
+            for (int row = 0; row < Rules.RowCount; row++)
+            {
+                for (int c = 0; c < Rules.RowCount - row; c++)
+                {
+                    cellImage[Offsets[row] + c] = Offsets[c] + row;
+                }
+            }
+
+            var table = new uint[4 * 256];
+            for (int b = 0; b < 4; b++)
+            {
+                for (int v = 0; v < 256; v++)
+                {
+                    uint image = 0u;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        int bit = (b * 8) + i;
+                        if (bit < Rules.HoleCount && ((v >> i) & 1) != 0)
+                        {
+                            image |= 1u << cellImage[bit];
+                        }
+                    }
+
+                    table[(b * 256) + v] = image;
+                }
+            }
+
+            return table;
         }
     }
 }

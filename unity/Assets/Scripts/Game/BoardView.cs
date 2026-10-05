@@ -6,8 +6,8 @@ using UnityEngine.UI;
 namespace TapaBuraco.Game
 {
     /// <summary>
-    /// A caixa de areia com o tabuleiro triangular — o <c>.areia-box</c> + <c>#tabuleiro</c>
-    /// do protótipo.
+    /// A caixa de areia com o tabuleiro em escada invertida (7 buracos no topo, 1 embaixo,
+    /// alinhada à esquerda) — o <c>.areia-box</c> + <c>#tabuleiro</c> do protótipo.
     ///
     /// Por que tudo posicionado na mão, sem LayoutGroup: o protótipo calcula uma única medida
     /// (<c>--u</c>, o diâmetro do buraco) e deriva TODO o resto dela. Reproduzir isso com flex
@@ -65,8 +65,8 @@ namespace TapaBuraco.Game
         /// <summary>Opacidade mais alta do keyframe <c>cintila</c> (é também o estado final).</summary>
         private const float BlinkHigh = 0.85f;
 
-        /// <summary>Números das estacas pré-alocados: nada de <c>ToString()</c> em laço.</summary>
-        private static readonly string[] RowNumbers = { "1", "2", "3", "4", "5", "6", "7" };
+        /// <summary>Números das estacas pré-alocados (o tamanho da fileira): nada de <c>ToString()</c> em laço.</summary>
+        private static readonly string[] RowSizes = { "1", "2", "3", "4", "5", "6", "7" };
 
         private readonly HoleView[] _holes = new HoleView[Rules.HoleCount];
         private readonly Vector2[] _holeCenters = new Vector2[Rules.HoleCount];
@@ -103,7 +103,7 @@ namespace TapaBuraco.Game
         /// <summary>O <c>--u</c> do CSS já convertido para unidades do canvas.</summary>
         public float Unit => _unit;
 
-        /// <summary>Toque num buraco: (fileira, índice dentro da fileira).</summary>
+        /// <summary>Toque num buraco: (fileira, coluna).</summary>
         public event Action<int, int> HoleClicked;
 
         // ------------------------------------------------------------------ fábrica
@@ -181,7 +181,7 @@ namespace TapaBuraco.Game
             ApplySkin();
         }
 
-        /// <summary>Estaca numerada à esquerda da fileira (<c>svgEstaca()</c> + <c>&lt;span&gt;</c>).</summary>
+        /// <summary>Estaca à esquerda da fileira com o tamanho dela (<c>svgEstaca()</c> + <c>&lt;span&gt;</c>).</summary>
         private void BuildStake(int row)
         {
             RectTransform stake = UiKit.Node(_boardRoot, "estaca");
@@ -191,7 +191,7 @@ namespace TapaBuraco.Game
             _stakeArt[row] = UiKit.Picture(stake, "madeira", UiKit.Art("estaca"), Color.white);
             UiKit.FillParent((RectTransform)_stakeArt[row].transform);
 
-            Text number = UiKit.Label(stake, "numero", RowNumbers[row], UiKit.Sign, 24, Palette.Creme);
+            Text number = UiKit.Label(stake, "numero", RowSizes[Board.RowLength(row) - 1], UiKit.Sign, 24, Palette.Creme);
             number.horizontalOverflow = HorizontalWrapMode.Overflow;
             UiKit.FillParent((RectTransform)number.transform);
             _stakeNumber[row] = number;
@@ -288,7 +288,7 @@ namespace TapaBuraco.Game
             float pitch = unit + gap;
             float totalHeight = (7f * unit) + (6f * gap);
             float totalWidth = stakeW + (7f * unit) + (7f * gap);
-
+            float left = -totalWidth * 0.5f;
             _boardRoot.sizeDelta = new Vector2(totalWidth, totalHeight);
 
             int numberSize = Mathf.Max(1, Mathf.RoundToInt(unit * 0.52f));
@@ -297,9 +297,8 @@ namespace TapaBuraco.Game
             {
                 int count = Board.RowLength(row);
 
-                // `.fileira{justify-content:center}`: a fileira inteira (estaca junto) é centrada.
-                float rowWidth = stakeW + (count * unit) + (count * gap);
-                float left = -rowWidth * 0.5f;
+                // `#tabuleiro{align-items:flex-start}` + `.fileira{justify-content:flex-start}`: escada
+                // alinhada à esquerda, colunas retas — é o que dá sentido à jogada na vertical.
                 float y = (totalHeight * 0.5f) - (unit * 0.5f) - (row * pitch);
 
                 RectTransform stake = _stakes[row];
@@ -337,12 +336,10 @@ namespace TapaBuraco.Game
         /// Espelha o estado da partida no tabuleiro. Idempotente e sem alocação: cada
         /// <see cref="HoleView"/> compara antes de tocar em qualquer malha.
         /// </summary>
-        /// <param name="board">Tabuleiro atual.</param>
-        /// <param name="selectedRow">Fileira marcada, ou -1.</param>
-        /// <param name="selectedHoles">Buracos marcados da fileira, alinhados no bit 0.</param>
+        /// <param name="selectedMask">Buracos marcados (máscara global).</param>
         /// <param name="interactive">true quando é a vez de um humano e nada está em curso.</param>
         /// <param name="reducedMotion">Corta pulsos e cintilações.</param>
-        public void Render(in Board board, int selectedRow, uint selectedHoles, bool interactive, bool reducedMotion)
+        public void Render(in Board board, uint selectedMask, bool interactive, bool reducedMotion)
         {
             _reducedMotion = reducedMotion;
 
@@ -354,16 +351,16 @@ namespace TapaBuraco.Game
             for (int row = 0; row < Rules.RowCount; row++)
             {
                 int count = Board.RowLength(row);
-                uint rowSelection = row == selectedRow ? selectedHoles : 0u;
 
                 for (int i = 0; i < count; i++)
                 {
-                    bool open = board.IsOpen(row, i);
-                    bool selected = open && (rowSelection & (1u << i)) != 0u;
+                    int global = Board.Index(row, i);
+                    bool open = board.IsOpen(global);
+                    bool selected = open && (selectedMask & (1u << global)) != 0u;
                     bool danger = open && lastOne;
                     bool playable = open && interactive;
 
-                    _holes[Board.RowOffset(row) + i].Apply(open, selected, danger, playable, reducedMotion);
+                    _holes[global].Apply(open, selected, danger, playable, reducedMotion);
 
                     anySelected |= selected;
                     anyDanger |= danger;
@@ -377,7 +374,7 @@ namespace TapaBuraco.Game
             _hasDanger = anyDanger;
         }
 
-        /// <summary>Tremida do keyframe <c>nega</c>: buraco recusado pela variante Vizinhos.</summary>
+        /// <summary>Tremida do keyframe <c>nega</c>: buraco tapado no caminho da linha.</summary>
         public void PlayReject(int row, int index)
         {
             HoleView hole = Find(row, index);
@@ -400,7 +397,7 @@ namespace TapaBuraco.Game
         /// <summary>Centro do buraco em coordenadas locais da camada de efeitos.</summary>
         public Vector2 HoleCenter(int row, int index)
         {
-            if ((uint)row >= (uint)Rules.RowCount || (uint)index >= (uint)Board.RowLength(row))
+            if (!Board.Exists(row, index))
             {
                 return Vector2.zero;
             }
@@ -456,7 +453,7 @@ namespace TapaBuraco.Game
 
         private HoleView Find(int row, int index)
         {
-            if ((uint)row >= (uint)Rules.RowCount || (uint)index >= (uint)Board.RowLength(row))
+            if (!Board.Exists(row, index))
             {
                 return null;
             }

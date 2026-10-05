@@ -11,7 +11,6 @@ namespace TapaBuraco.Core
     {
         public GameMode mode = GameMode.Cpu;
         public AiLevel level = AiLevel.Banhista;
-        public Variant variant = Variant.Livre;
         public Skin skin = Skin.Praia;
 
         public bool sfx = true;
@@ -47,7 +46,6 @@ namespace TapaBuraco.Core
             {
                 mode = mode,
                 level = level,
-                variant = variant,
                 skin = skin,
                 sfx = sfx,
                 ambience = ambience,
@@ -83,7 +81,6 @@ namespace TapaBuraco.Core
             if (masterVolume > 1f) masterVolume = 1f;
             if (!Enum.IsDefined(typeof(GameMode), mode)) mode = GameMode.Cpu;
             if (!Enum.IsDefined(typeof(AiLevel), level)) level = AiLevel.Banhista;
-            if (!Enum.IsDefined(typeof(Variant), variant)) variant = Variant.Livre;
             if (!Enum.IsDefined(typeof(Skin), skin)) skin = Skin.Praia;
         }
     }
