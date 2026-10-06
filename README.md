@@ -65,6 +65,36 @@ ortográfica, então mouse, toque, teclado e leitor de tela usam o mesmo botão.
 altura da areia vira a malha que sobe dentro da cavidade e os grãos viram um `InstancedMesh`.
 Sem WebGL (ou com o contexto perdido), volta o tabuleiro 2D com o canvas de areia descrito acima.
 
+A luz segue o modo "Baked Indirect": um sol em tempo real com sombra; o resto é assado na
+montagem. Um shader avalia o relevo analítico uma vez por texel numa textura de altura e, dela,
+saem a normal (com grão, marolas e marcas de escavação) e a oclusão ambiental (normal baking na
+GPU); o ambiente vira uma probe de harmônicos esféricos no lugar da luz de hemisfério; os objetos
+têm smooth com vinco, chanfro e luz de recorte por fresnel. A cena é desenhada em HDR e passa por
+bloom, color grading, vinheta e neblina de distância, todos discretos.
+
+Cada buraco tem forma própria (contorno levemente ondulado e ovalado, fundo inclinado, areia
+tirada amontoada de um lado), tirada de um hash da posição: estável em toda partida, sem mexer
+no centro, no passo nem no alvo de toque. O enchimento segue essa forma, se espalha um pouco
+por cima do chão e termina numa superfície remexida mais clara, com a marca curta da pá; o
+estado reconstruído sem animação é o mesmo do fim da animação. A seleção, o hover e o perigo
+são fitas desenhadas no chão, acompanhando o contorno; a faixa da linha em jogo é pintada no
+próprio chão. O vendedor de mate e o banhista são personagens da interface (SVG com o traço de
+tinta dos cartões), não do diorama. Capturas antes/depois em [`docs/capturas`](docs/capturas).
+
+Para reduzir a trava da primeira jogada, depois do primeiro quadro o diorama prepara, em
+tempo ocioso, os shaders de seleção, enchimento, pá e grãos com `compileAsync`, usando o
+mesmo alvo HDR do desenho. A primeira malha de enchimento e a pá preparada ficam invisíveis
+e são reutilizadas na partida. Sincronizar o tabuleiro sem mudar as bandeiras não invalida
+mais o mapa de sombras; a animação continua atualizando suas sombras normalmente. Resolução,
+geometria, materiais, partículas e pós-processamento não foram reduzidos.
+
+Verificação no Edge: no cenário de selecionar e tapar os sete buracos da primeira fileira,
+as compilações de shader durante a interação passaram de 14 para 4. Doze sincronizações
+do tabuleiro parado passaram de 12 atualizações de sombra para zero. O canvas 3D antes/depois,
+com o mar congelado e o enchimento assentado, foi idêntico pixel a pixel. Também foram
+exercitados partida completa, teclado, movimento reduzido e viewport móvel de 390×844;
+isso não substitui medição de desempenho num celular físico.
+
 Câmera, luz, céu, sombra, pixel ratio, cores e ondas ficam no objeto `DIORAMA` do `index.html`.
 Decisões e consequências em [`docs/adr/0001-diorama-3d-web.md`](docs/adr/0001-diorama-3d-web.md).
 O Three.js embutido é regenerado por `bun tools/diorama/build.mjs`; o porte para Unity do
