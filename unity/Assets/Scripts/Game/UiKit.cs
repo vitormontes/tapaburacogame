@@ -13,7 +13,7 @@ namespace TapaBuraco.Game
         /// <summary>Creme com texto de tinta — ação secundária.</summary>
         Creme = 1,
 
-        /// <summary>Creme miúdo — "Voltar", "Desfazer".</summary>
+        /// <summary>Creme miúdo — "Voltar", "Limpar seleção".</summary>
         Small = 2,
 
         /// <summary>Quadradinho de ícone do HUD.</summary>

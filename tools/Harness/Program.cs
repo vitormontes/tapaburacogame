@@ -20,6 +20,8 @@ namespace TapaBuraco.Harness
     {
         private static string Hint() => Private<Text>(Private<GameScreen>(_app, "_game"), "_hintText")?.text ?? string.Empty;
 
+        private static string ConfirmLabel() => Private<ButtonView>(Private<GameScreen>(_app, "_game"), "_confirm")?.Label?.text ?? string.Empty;
+
         private static string TextOf(string name) => Node(name)?.GetComponent<Text>()?.text ?? string.Empty;
 
         private const float FrameStep = 1f / 60f;
@@ -346,7 +348,7 @@ namespace TapaBuraco.Harness
             Check(labels.SequenceEqual(new[] { "7", "6", "5", "4", "3", "2", "1" }), $"estacas mostram o tamanho: {string.Join(",", labels)}");
         }
 
-        /// <summary>Seleção por cliques reais: trecho, diagonal, linha bloqueada e Desfazer.</summary>
+        /// <summary>Seleção por cliques reais: trecho, diagonal, linha bloqueada, rótulo da pazinha e "Limpar seleção".</summary>
         private static void CheckSelectionByClicks(GameObject[] holes)
         {
             GameObject H(int r, int c) => holes[Board.Index(r, c)];
@@ -354,15 +356,18 @@ namespace TapaBuraco.Harness
             Check(Click(H(0, 1)) && Click(H(0, 4)), "tocar começo e fim da fileira");
             Check(_session.SelectedCount == 4 && _session.SelectionIsHorizontal, $"4 buracos marcados na horizontal ({_session.SelectedCount})");
             Check(Hint().Contains("4") && Hint().Contains("horizontal"), $"dica: {Hint()}");
+            Check(ConfirmLabel() == "TAPAR 4 BURACOS", $"rótulo da pazinha no plural: {ConfirmLabel()}");
             Check(Click(H(3, 1)), "tocar fora da linha");
             Check(_session.SelectedCount == 1 && Hint().Contains("Recomeçou"), $"recomeçou no buraco tocado — dica: {Hint()}");
+            Check(ConfirmLabel() == "TAPAR 1 BURACO", $"rótulo da pazinha no singular: {ConfirmLabel()}");
             Check(Click(H(4, 2)), "tocar na diagonal");
             Check(_session.SelectedCount == 1 && Hint().Contains("Diagonal"), $"diagonal recusada — dica: {Hint()}");
             Check(Click(H(0, 2)), "tocar o topo da coluna");
             Check(_session.SelectedCount == 5 && !_session.SelectionIsHorizontal, "coluna 2 inteira marcada na vertical");
             Check(Hint().Contains("vertical"), $"dica: {Hint()}");
-            Check(Click("btn-desfazer"), "\"Desfazer\" clicado");
+            Check(Click("btn-desfazer"), "\"Limpar seleção\" clicado");
             Check(_session.SelectedCount == 0 && Hint().Contains("linha reta"), $"seleção limpa — dica: {Hint()}");
+            Check(ConfirmLabel() == "TAPAR", $"rótulo da pazinha sem seleção: {ConfirmLabel()}");
             Check(Click(H(5, 0)), "um buraco marcado");
             Check(Hint().Contains("siga na horizontal ou na vertical"), $"dica: {Hint()}");
             Click("btn-desfazer");

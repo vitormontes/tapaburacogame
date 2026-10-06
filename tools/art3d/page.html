@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>TAPA BURACO — bancada de render 3D</title>
+<style>html,body{margin:0;height:100%;background:#22333a}canvas{display:block}</style>
+<script type="importmap">
+{ "imports": {
+    "three": "/node_modules/three/build/three.module.js",
+    "three/addons/": "/node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from "three";
+import { P, matLiso } from "./lib/paleta.js";
+import { areia, banhista, guardaSol, monte, praia, tabuleiro } from "./lib/cenas.js";
+
+let renderer;
+
+function criarRenderer(w, h) {
+  if (renderer) {
+    renderer.setSize(w, h, false);
+    return renderer;
+  }
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1);
+  renderer.setSize(w, h, false);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  document.body.appendChild(renderer.domElement);
+  return renderer;
+}
+
+/** Luz fixa do jogo: sol de fim de tarde vindo da esquerda e o céu rebatendo na areia. */
+function luz(cena, { alcance = 8, intensidade = 2.6 } = {}) {
+  cena.add(new THREE.HemisphereLight(P.ceu, P.areiaMol, 1.1));
+
+  const sol = new THREE.DirectionalLight(0xFFD9A0, intensidade);
+  sol.position.set(-alcance * 0.75, alcance * 1.15, alcance * 0.6);
+  sol.castShadow = true;
+  sol.shadow.mapSize.set(2048, 2048);
+  sol.shadow.camera.left = -alcance;
+  sol.shadow.camera.right = alcance;
+  sol.shadow.camera.top = alcance;
+  sol.shadow.camera.bottom = -alcance;
+  sol.shadow.camera.far = alcance * 6;
+  sol.shadow.bias = -0.0006;
+  sol.shadow.radius = 3;
+  cena.add(sol);
+
+  const rebote = new THREE.DirectionalLight(P.coral, 0.3);
+  rebote.position.set(alcance, alcance * 0.3, -alcance * 0.7);
+
+  // Preenchimento vindo da câmera: sem ele o lado oposto ao sol apaga e o rosto some.
+  const frontal = new THREE.DirectionalLight(P.creme, 0.55);
+  frontal.position.set(alcance * 0.4, alcance * 0.5, alcance * 1.2);
+  cena.add(frontal);
+  cena.add(rebote);
+
+  return sol;
+}
+
+/** Piso invisível que só recebe sombra — dá contato aos sprites recortados. */
+function sombraDeContato(cena, tamanho = 6) {
+  const piso = new THREE.Mesh(
+    new THREE.PlaneGeometry(tamanho, tamanho),
+    new THREE.ShadowMaterial({ opacity: 0.28 }));
+  piso.rotation.x = -Math.PI / 2;
+  piso.receiveShadow = true;
+  cena.add(piso);
+  return piso;
+}
+/**
+ * Enquadra a câmera pelo volume do objeto — cada pose tem silhueta diferente, e ajustar
+ * distância na mão pose a pose só rendia braço cortado.
+ */
+function enquadrar(camera, objeto, margem = 1.15, altura = 0.34) {
+  const esfera = new THREE.Box3().setFromObject(objeto).getBoundingSphere(new THREE.Sphere());
+  const dist = (esfera.radius / Math.sin(THREE.MathUtils.degToRad(camera.fov) * 0.5)) * margem;
+  const direcao = new THREE.Vector3(0.16, altura, 1).normalize();
+  camera.position.copy(esfera.center).addScaledVector(direcao, dist);
+  camera.lookAt(esfera.center);
+}
+
+const CENAS = {
+  async personagem({ pose = "apresenta", cor = "coral" } = {}) {
+    const cena = new THREE.Scene();
+    luz(cena, { alcance: 4 });
+    sombraDeContato(cena, 5);
+
+    const boneco = banhista({
+      sunga: cor === "mar" ? P.jogadorDois : P.jogadorUm,
+      pose,
+      comPazinha: pose === "apresenta",
+      comChapeu: pose !== "derrota",
+    });
+    cena.add(boneco);
+
+    const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 60);
+    enquadrar(camera, boneco, 1.16);
+    return { cena, camera, transparente: true };
+  },
+
+  async prop({ nome = "guarda-sol", cor = "coral" } = {}) {
+    const cena = new THREE.Scene();
+    luz(cena, { alcance: 4 });
+    sombraDeContato(cena, 6);
+
+    if (nome === "guarda-sol") {
+      const cores = { coral: P.coral, mar: P.mar, amarelo: P.amarelo };
+      cena.add(guardaSol(cores[cor] ?? P.coral));
+    }
+
+    if (nome === "monte") {
+      cena.add(monte());
+    }
+
+    const camera = new THREE.PerspectiveCamera(26, 1, 0.1, 60);
+    if (nome === "monte") {
+      camera.position.set(0, 3.2, 2.1);
+      camera.lookAt(0, 0, 0);
+    } else {
+      camera.position.set(1.4, 2.6, 6.2);
+      camera.lookAt(0, 1.35, 0);
+    }
+    return { cena, camera, transparente: true };
+  },
+
+  async tabuleiro({ tapados = [] } = {}) {
+    const cena = new THREE.Scene();
+    luz(cena, { alcance: 9, intensidade: 2.4 });
+    cena.add(tabuleiro({ tapados }));
+
+    // Ortográfica e de cima: o grid do jogo continua batendo com os pixels do sprite.
+    const lado = 5.9;
+    const camera = new THREE.OrthographicCamera(-lado, lado, lado, -lado, 0.1, 40);
+    camera.position.set(0, 12, 0.001);
+    camera.lookAt(0, 0, 0);
+    return { cena, camera, transparente: false };
+  },
+
+  async praia() {
+    const cena = new THREE.Scene();
+    luz(cena, { alcance: 16, intensidade: 2.5 });
+
+    // Céu em degradê, do azul do jogo ao creme na linha do horizonte.
+    const ceu = new THREE.Mesh(
+      new THREE.SphereGeometry(70, 32, 16),
+      new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        uniforms: {
+          alto: { value: new THREE.Color(P.ceu) },
+          baixo: { value: new THREE.Color(P.creme) },
+        },
+        vertexShader: "varying vec3 p; void main(){ p = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+        fragmentShader: "uniform vec3 alto; uniform vec3 baixo; varying vec3 p; void main(){ float t = clamp(p.y/40.0+0.15,0.0,1.0); gl_FragColor = vec4(mix(baixo, alto, t),1.0); }",
+      }));
+    cena.add(ceu);
+    cena.add(await praia());
+
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+    camera.position.set(0, 5.2, 16);
+    camera.lookAt(0, 3.2, -6);
+    return { cena, camera, transparente: false };
+  },
+};
+
+window.bancada = {
+  async render(nome, largura, altura, opcoes = {}) {
+    const { cena, camera, transparente } = await CENAS[nome](opcoes);
+    const r = criarRenderer(largura, altura);
+    r.setClearAlpha(transparente ? 0 : 1);
+    if (camera.isPerspectiveCamera) {
+      camera.aspect = largura / altura;
+    } else {
+      const escala = largura / altura;
+      camera.left = camera.bottom * escala;
+      camera.right = camera.top * escala;
+    }
+    camera.updateProjectionMatrix();
+    r.render(cena, camera);
+    return r.domElement.toDataURL("image/png");
+  },
+};
+
+window.pronto = true;
+</script>
+</body>
+</html>

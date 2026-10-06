@@ -27,6 +27,7 @@ namespace TapaBuraco.Game
         private readonly ButtonView _undo;
         private readonly ButtonView _confirm;
 
+        private int _confirmCount = -1;
         private bool _wideLayout;
         private bool _layoutApplied;
 
@@ -80,12 +81,12 @@ namespace TapaBuraco.Game
             _actionsColumn.childControlHeight = true;
             _actionsColumn.enabled = false;
 
-            _undo = UiKit.Button(_actions, "btn-desfazer", "Desfazer", ButtonStyle.Small);
-            UiKit.Size(_undo.Root, 92f, 34f);
+            _undo = UiKit.Button(_actions, "btn-desfazer", "Limpar seleção", ButtonStyle.Small);
+            UiKit.Size(_undo.Root, 140f, 34f);
             _undo.Button.onClick.AddListener(() => UndoClicked?.Invoke());
 
             _confirm = UiKit.Button(_actions, "btn-tapar", "TAPAR", ButtonStyle.Coral, UiKit.Art("pazinha"));
-            UiKit.Size(_confirm.Root, 150f, 52f);
+            UiKit.Size(_confirm.Root, 200f, 52f);
             _confirm.Button.onClick.AddListener(() => ConfirmClicked?.Invoke());
 
             _undo.Interactable = false;
@@ -101,10 +102,10 @@ namespace TapaBuraco.Game
         /// <summary>Tabuleiro na areia.</summary>
         public BoardView Board { get; }
 
-        /// <summary>Botão TAPAR.</summary>
+        /// <summary>Botão TAPAR (o rótulo mostra quantos buracos estão marcados).</summary>
         public event Action ConfirmClicked;
 
-        /// <summary>Botão Desfazer.</summary>
+        /// <summary>Botão "Limpar seleção": desmarca tudo.</summary>
         public event Action UndoClicked;
 
         /// <summary>Liga/desliga a tela inteira.</summary>
@@ -131,6 +132,20 @@ namespace TapaBuraco.Game
         {
             _confirm.Interactable = canConfirm;
             _undo.Interactable = canUndo;
+        }
+
+        /// <summary>Rótulo da pazinha: "TAPAR", "TAPAR 1 BURACO" ou "TAPAR n BURACOS".</summary>
+        public void SetConfirmCount(int selected)
+        {
+            if (selected == _confirmCount)
+            {
+                return;
+            }
+
+            _confirmCount = selected;
+            _confirm.Label.text = selected <= 0
+                ? "TAPAR"
+                : selected == 1 ? "TAPAR 1 BURACO" : $"TAPAR {selected} BURACOS";
         }
 
         /// <summary>Acompanha a rotação da tela e anima o HUD.</summary>
@@ -200,8 +215,8 @@ namespace TapaBuraco.Game
 
                 _actionsColumn.enabled = false;
                 _actionsRow.enabled = true;
-                UiKit.Size(_undo.Root, 110f, 34f);
-                UiKit.Size(_confirm.Root, 170f, 46f);
+                UiKit.Size(_undo.Root, 140f, 34f);
+                UiKit.Size(_confirm.Root, 200f, 46f);
             }
 
             LayoutRebuilder.MarkLayoutForRebuild(_side);

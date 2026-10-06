@@ -652,6 +652,7 @@ namespace TapaBuraco.Game
 
             _game.Hud.SetActivePlayer(_session.CurrentPlayer, _session.IsOver);
             _game.SetActions(_session.CanConfirm, _session.SelectedCount > 0 && !_session.IsBusy);
+            _game.SetConfirmCount(_session.SelectedCount);
         }
 
         private void UpdateHint()

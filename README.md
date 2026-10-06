@@ -24,15 +24,51 @@ na hora com Web Audio e nenhuma dependência externa.
 - Um buraco já tapado **bloqueia a linha**: em `O O O X O` dá para tapar até o X, e o último O fica
   separado.
 - Toque nos buracos para marcar (tocar no começo e no fim marca o trecho todo) e confirme na
-  **pazinha TAPAR**.
+  **pazinha TAPAR**, que mostra quantos buracos vão ser tapados ("TAPAR 3 BURACOS").
 - **Quem tapar o último buraco perde.**
 
-Na tela inicial há só dois modos: **Contra o computador** (escolhe o adversário e já começa) e
-**2 jogadores** no mesmo aparelho. Adversários: **Turista** (joga no chute), **Banhista** (acerta
-metade das vezes) e **Rato de Praia** (quase não erra). Estilo visual (*Areia de Copacabana* ou
-*Papel de Pão*) e som ficam em **Ajustes**.
+Na tela inicial, **Jogar** abre a escolha de modo: **Contra o computador** (escolhe o adversário
+e já começa) ou **2 jogadores** no mesmo aparelho. Adversários: **Turista** (joga no chute),
+**Banhista** (acerta metade das vezes) e **Rato de Praia** (quase não erra). Estilo visual
+(*Areia de Copacabana* ou *Papel de Pão*, com prévia de cada um) e som ficam em **Ajustes**.
 
-Atalhos no teclado: `Enter`/`Espaço` tapa, `Backspace` desfaz, `Esc` fecha os painéis.
+Atalhos no teclado: `Enter`/`Espaço` tapa, `Backspace` limpa a seleção, `Esc` fecha os painéis
+ou volta um passo no menu. Com o foco num buraco (navegação por `Tab`), `Enter` marca o buraco.
+
+## A areia que tapa o buraco
+
+Ao confirmar, cada buraco da linha recebe uma pazada de areia, na ordem da linha, com 100 ms
+entre um e outro. Os grãos saem da pá em arco, quicam pouco, formam um montinho que escorre e
+assenta nivelado, com a marca de areia remexida. Tudo num `<canvas>` 2D sobre o tabuleiro:
+
+- **Grãos**: sistema de partículas com pool fixo (posição, velocidade, gravidade, quique com
+  atrito), a partir do capítulo de partículas do *The Nature of Code* (Daniel Shiffman).
+- **Acúmulo**: um campo de altura de 16×16 por buraco com a regra da *falling sand* (Coding
+  Train; Sandspiel, de Max Bittker, MIT) adaptada à vista de cima: a areia escorre para a
+  vizinha mais baixa quando passa do ângulo de repouso. Só os conceitos foram usados, nenhum
+  código.
+- **Recorte**: o enchimento é desenhado com `clip()` no contorno do buraco; grãos no ar ou que
+  espirram para fora vão numa camada sem recorte, com sombra no chão.
+
+A jogada vale no instante da confirmação; a animação só decide quando o buraco aparece tapado e
+quando a vez passa. Os parâmetros (`graos`, `gravidade`, `atrito`, `elasticidade`, `duracao`,
+`intervalo`, `maxParticulas`, `grade`, `repouso`, `profundidade`) ficam no objeto `AREIA` do
+`index.html` e podem ser ajustados ao vivo pelo console em `TAPABURACO.areia`. Com movimento
+reduzido, o buraco só se enche de areia em 220 ms, sem grãos nem pazinha.
+
+## O diorama 3D
+
+Na web, a praia é uma maquete em 3D (Three.js 0.169.0, só as classes usadas, embutido no próprio
+`index.html`, que continua único e offline). O 3D só desenha: as regras ficam em `MOTOR`/`J` e os
+28 buracos continuam sendo `<button>` HTML transparentes sobre a projeção de cada buraco na câmera
+ortográfica, então mouse, toque, teclado e leitor de tela usam o mesmo botão. No 3D, o campo de
+altura da areia vira a malha que sobe dentro da cavidade e os grãos viram um `InstancedMesh`.
+Sem WebGL (ou com o contexto perdido), volta o tabuleiro 2D com o canvas de areia descrito acima.
+
+Câmera, luz, céu, sombra, pixel ratio, cores e ondas ficam no objeto `DIORAMA` do `index.html`.
+Decisões e consequências em [`docs/adr/0001-diorama-3d-web.md`](docs/adr/0001-diorama-3d-web.md).
+O Three.js embutido é regenerado por `bun tools/diorama/build.mjs`; o porte para Unity do
+diorama fica para quando houver editor para validar.
 
 ## A matemática por trás
 
@@ -104,6 +140,7 @@ branch* ▸ `main` / `/ (root)`). Como o jogo é um `index.html` autossuficiente
 ## Licença e créditos
 
 Jogo, arte e código por [@vitormontes](https://github.com/vitormontes).
-Fontes: [Anton](https://fonts.google.com/specimen/Anton) e
-[Crimson Text](https://fonts.google.com/specimen/Crimson+Text), ambas sob SIL Open Font License
-(cópias em `unity/Assets/Resources/Fonts/`).
+Fontes: [Anton](https://fonts.google.com/specimen/Anton) (títulos, web e Unity),
+[Nunito](https://fonts.google.com/specimen/Nunito) (texto da web, embutida em WOFF2) e
+[Crimson Text](https://fonts.google.com/specimen/Crimson+Text) (texto da Unity), todas sob SIL
+Open Font License (cópias da Unity em `unity/Assets/Resources/Fonts/`).

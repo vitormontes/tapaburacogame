@@ -26,26 +26,27 @@ Critério de sucesso: **em aberto**. Não foi definido se o objetivo é um proje
 ## Operating Context
 
 - Navegador do celular ou do computador, sem instalar nada. O jogo é publicado via GitHub Pages a partir de `main`, na raiz: <https://vitormontes.github.io/tapaburacogame/>.
-- Tela inicial com só dois modos (pedido do usuário: "menos botões, algo mais clean"): **Contra o computador**, que leva à escolha entre três adversários, e **2 jogadores** (passa-e-joga no mesmo aparelho). Estilo e som ficam em "Ajustes".
+- Tela inicial com um botão principal, **Jogar**, que abre a escolha entre dois modos (pedido do usuário: "menos botões, algo mais clean"; em 2026-10-05 o usuário preferiu o passo extra do Jogar a manter os dois modos na tela inicial): **Contra o computador**, que leva à escolha entre três adversários, e **2 jogadores** (passa-e-joga no mesmo aparelho). "Como joga" é ação secundária; estilo e som ficam em "Ajustes". Na Unity, por enquanto só os textos acompanharam ("Limpar seleção", "TAPAR n BURACOS"); o passo do Jogar ainda não foi portado.
 - No iPhone, o Safari silencia o áudio da web quando a chave de silencioso está ligada. O jogo avisa isso no menu.
 
 ## Capabilities and Constraints
 
 Estado atual (fato do repositório; o usuário **não** confirmou nenhum destes itens como compromisso fixo):
 
-- A web inteira é um arquivo autossuficiente, `index.html` (~105 KB), que funciona offline depois de carregar. A arte é SVG feita à mão, o som é sintetizado com Web Audio e não há dependências externas. A fonte Anton está embutida em WOFF2.
+- A web inteira é um arquivo autossuficiente, `index.html` (~175 KB), que funciona offline depois de carregar. A arte é SVG feita à mão, o som é sintetizado com Web Audio e não há dependências externas. Anton (títulos) e Nunito 600/800 (texto) estão embutidas em WOFF2.
 - **Regra**: lance = trecho contíguo de buracos abertos numa fileira ou numa coluna da escada (140 trechos possíveis); misère.
 - **Adversários** (confirmado: manter os 3): Turista (joga no chute), Banhista (acerta metade das vezes) e Rato de Praia (busca exata com tempo-limite de 2,5 s, livro de abertura embutido e busca num Web Worker).
 - **Skins**: Areia de Copacabana e Papel de Pão (caneta azul).
 - **Som**: efeitos, ambiente (ondas e gaivotas) e musiquinha, cada um com chave própria.
 - **Persistência**: preferências e placar ficam em `localStorage`/`PlayerPrefs`, sob a chave `tapaburaco.v1`, compartilhada entre web e Unity.
-- **Teclado**: `Enter`/`Espaço` tapa, `Backspace` desfaz, `Esc` fecha os painéis.
-- **Acessibilidade já implementada**: `prefers-reduced-motion` (tira o tremor e o flash, e a medalha entra estática), papéis e rótulos ARIA no tabuleiro e nos botões, e `lang="pt-BR"`.
+- **Teclado**: `Enter`/`Espaço` tapa, `Backspace` limpa a seleção, `Esc` fecha os painéis ou volta um passo no menu.
+- **Acessibilidade já implementada**: `prefers-reduced-motion` (tira o tremor, a areia vira preenchimento simples sem grãos nem pazinha, a medalha entra estática e o cenário para), foco visível de teclado, rótulos ARIA no tabuleiro (com o estado "tapado") e nos botões de ícone, interruptores `role="switch"` no som, modais com foco gerenciado, alvos de toque de 44 px e `lang="pt-BR"`. Estados do buraco se distinguem por forma, não só cor: aberto é côncavo, marcado leva anel e bandeirinha, tapado vira areia remexida nivelada com contorno.
+- **Efeito de tapar** (só web): ao confirmar, cada buraco da linha é preenchido por areia num canvas 2D (partículas com gravidade e quique + campo de altura com regra de "falling sand" vista de cima). O lance é aplicado em `J.tab` na confirmação; a física só decide quando cada buraco aparece tapado (`J.visivel`) e quando a vez passa. Parâmetros no objeto `AREIA` do `index.html` (grãos, gravidade, atrito, elasticidade, duração, intervalo, teto de partículas).
 - **Porte Unity 6** (6000.0.58f1, uGUI) em `unity/`: núcleo de regras sem `UnityEngine`, verificado em `tools/CoreTests` e `tools/Harness`. O usuário confirmou que mudanças de regra e de menu valem para web **e** Unity. A plataforma de destino do porte está **em aberto**.
 - Interface e textos em português (pt-BR).
-- **Em pesquisa**: simulação de areia e água (SPH, PIC/FLIP), em `_r1.md` e `_r2.md`.
+- **Em pesquisa**: simulação de areia e água (SPH, PIC/FLIP), em `_r1.md` e `_r2.md`. O efeito de tapar não usa essa pesquisa: é um modelo local e barato por buraco.
 
-Terminologia: fileira, buraco, tapar, pazinha (botão TAPAR), caldo (derrota), passa-e-joga.
+Terminologia: fileira, buraco, tapar, pazinha (botão TAPAR), caldo (derrota), passa-e-joga, limpar seleção.
 
 ## Brand Commitments
 
@@ -54,7 +55,7 @@ Existentes no repositório, sem confirmação do usuário de que sejam obrigató
 - Nome: **TAPA BURACO**, com o "O" desenhado como um buraco na areia.
 - Voz carioca, coloquial e bem-humorada: "leva um caldo", "Rato de Praia", "Banhista de Domingo", "joga no chute".
 - Mascote: vendedor de mate na praia. Personagem do banhista (vitória, derrota, apresentação) nas variantes mar e coral.
-- Fontes: Anton e Crimson Text (SIL OFL).
+- Fontes: Anton (títulos), Nunito (texto da web) e Crimson Text (texto da Unity), todas SIL OFL.
 - Autoria: jogo, arte e código por @vitormontes.
 
 ## Evidence on Hand

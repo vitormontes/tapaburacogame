@@ -185,7 +185,7 @@ namespace TapaBuraco.Core
             return SelectionResult.Extended;
         }
 
-        /// <summary>Botão "Desfazer": limpa a marcação.</summary>
+        /// <summary>Botão "Limpar seleção": limpa a marcação.</summary>
         public void ClearSelection()
         {
             if (_selCount == 0)
@@ -204,7 +204,7 @@ namespace TapaBuraco.Core
             return _selCount > 0 && Move.TryFromMask(SelectedMask, out move);
         }
 
-        /// <summary>Confirma a marcação ("TAPAR"). Devolve false se o lance for ilegal.</summary>
+        /// <summary>Confirma a marcação (pazinha "TAPAR n BURACOS"). Devolve false se o lance for ilegal.</summary>
         public bool ConfirmSelection()
         {
             return CanConfirm && TryBuildSelectedMove(out Move move) && Apply(move);
